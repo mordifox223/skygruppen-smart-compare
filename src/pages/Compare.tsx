@@ -30,14 +30,17 @@ const Compare = () => {
   }
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
       
       <main className="flex-grow">
-        <div className="bg-gray-50 py-8">
+        <div className="bg-slate-900 text-white py-8">
           <div className="container mx-auto px-4">
             <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
-            <p className="text-gray-600">{category.description[language]}</p>
+            <p className="text-gray-300">{category.description[language]}</p>
+            <p className="mt-2 text-sm text-gray-400">
+              {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+            </p>
           </div>
         </div>
         
@@ -48,10 +51,15 @@ const Compare = () => {
             </div>
             
             <div className="lg:col-span-1">
-              <QRCodeGenerator />
+              <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
+                <h3 className="font-semibold mb-3 text-gray-800">
+                  {language === 'nb' ? 'Del denne sammenligningen' : 'Share this comparison'}
+                </h3>
+                <QRCodeGenerator />
+              </div>
               
               {/* Information box */}
-              <div className="bg-sky-50 p-4 rounded-lg mt-6">
+              <div className="bg-sky-50 p-4 rounded-lg shadow-sm">
                 <h3 className="font-semibold mb-2 text-sky-800">
                   {language === 'nb' ? 'Visste du?' : 'Did you know?'}
                 </h3>
@@ -59,6 +67,18 @@ const Compare = () => {
                   {language === 'nb' 
                     ? `Å sammenligne ${category.name[language].toLowerCase()} kan spare deg tusenvis av kroner i året. Våre brukere sparer i gjennomsnitt 2,345 kr per år!` 
                     : `Comparing ${category.name[language].toLowerCase()} can save you thousands of kroner per year. Our users save 2,345 NOK per year on average!`}
+                </p>
+              </div>
+              
+              {/* Provider count info */}
+              <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
+                <h3 className="font-semibold mb-2 text-gray-800">
+                  {language === 'nb' ? 'Om dataene' : 'About the data'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {language === 'nb' 
+                    ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Data oppdateres daglig for å sikre nøyaktighet.` 
+                    : `We compare prices and services from ${providers.length} providers. Data is updated daily to ensure accuracy.`}
                 </p>
               </div>
             </div>

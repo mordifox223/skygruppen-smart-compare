@@ -30,6 +30,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
   });
   const [showFilters, setShowFilters] = useState(false);
   const [minRating, setMinRating] = useState(0);
+  const [visibleProviders, setVisibleProviders] = useState(6);
   
   // Filter and sort providers
   const filteredProviders = providers
@@ -72,6 +73,12 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
     setMinRating(value[0]);
   };
   
+  const loadMoreProviders = () => {
+    setVisibleProviders(prev => prev + 6);
+  };
+  
+  const displayedProviders = filteredProviders.slice(0, visibleProviders);
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -98,7 +105,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
               <SelectTrigger className="w-32">
                 <SelectValue placeholder={language === 'nb' ? 'Sorter etter' : 'Sort by'} />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectGroup>
                   <SelectItem value="price">{language === 'nb' ? 'Pris' : 'Price'}</SelectItem>
                   <SelectItem value="rating">{language === 'nb' ? 'Vurdering' : 'Rating'}</SelectItem>
@@ -142,10 +149,17 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
         </div>
       )}
       
+      {/* Provider count */}
+      <p className="text-sm text-gray-600">
+        {language === 'nb' 
+          ? `Viser ${displayedProviders.length} av ${filteredProviders.length} leverandører` 
+          : `Showing ${displayedProviders.length} of ${filteredProviders.length} providers`}
+      </p>
+      
       {/* Provider grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredProviders.length > 0 ? (
-          filteredProviders.map(provider => (
+        {displayedProviders.length > 0 ? (
+          displayedProviders.map(provider => (
             <ProviderCard key={provider.id} provider={provider} />
           ))
         ) : (
@@ -156,6 +170,19 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
           </div>
         )}
       </div>
+      
+      {/* Load more button */}
+      {visibleProviders < filteredProviders.length && (
+        <div className="text-center mt-6">
+          <Button 
+            onClick={loadMoreProviders} 
+            variant="outline"
+            className="mx-auto"
+          >
+            {language === 'nb' ? 'Vis flere leverandører' : 'Show more providers'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

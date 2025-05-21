@@ -23,7 +23,7 @@ const LanguageToggle = () => {
           </span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
+      <DropdownMenuContent align="end" className="bg-white">
         <DropdownMenuItem onClick={() => setLanguage('nb')} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
             🇳🇴 Norsk

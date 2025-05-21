@@ -42,9 +42,9 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   };
   
   return (
-    <div className="provider-card p-4 flex flex-col h-full">
+    <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white">
       <div className="flex items-center mb-4">
-        <div className="w-16 h-10 bg-gray-100 rounded flex items-center justify-center overflow-hidden mr-3">
+        <div className="w-20 h-12 bg-gray-50 rounded flex items-center justify-center overflow-hidden mr-3">
           <img 
             src={provider.logo} 
             alt={`${provider.name} logo`} 
