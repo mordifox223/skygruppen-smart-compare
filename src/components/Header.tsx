@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/lib/languageContext';
-import { t, getAvailableCategories } from '@/lib/i18n';
+import { getAvailableCategories } from '@/lib/i18n';
 import LanguageToggle from '@/components/LanguageToggle';
 import { Menu, X } from 'lucide-react';
 
