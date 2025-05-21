@@ -5,10 +5,42 @@ import { useLanguage } from '@/lib/languageContext';
 import { Button } from '@/components/ui/button';
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ProviderCardProps {
   provider: Provider;
 }
+
+// Map of real provider logos
+const logoMap: Record<string, string> = {
+  // Insurance companies
+  "Gjensidige": "https://www.gjensidige.no/favicon.ico",
+  "If": "https://www.if.no/themes/contrib/if_theme/images/favicon.ico",
+  "Tryg": "https://www.tryg.no/favicon.ico",
+  "Fremtind": "https://www.fremtind.no/assets/icons/favicon-32x32.png",
+  "Storebrand": "https://www.storebrand.no/favicon.ico",
+  
+  // Mobile providers
+  "Telenor": "https://www.telenor.no/favicon.ico",
+  "Telia": "https://www.telia.no/favicon.ico",
+  "ice": "https://www.ice.no/assets/favicon/ico/favicon.ico",
+  "Talkmore": "https://www.talkmore.no/static/talkmore/icons/favicon-32x32.png",
+  "Chili Mobil": "https://www.chilimobil.no/wp-content/uploads/2020/04/cropped-chili-mobil-square-logo-32x32.png",
+  
+  // Electricity providers
+  "Tibber": "https://tibber.com/favicon.ico",
+  "Fjordkraft": "https://www.fjordkraft.no/favicon.ico",
+  "Fortum": "https://www.fortum.com/favicon.ico",
+  "NorgesEnergi": "https://www.norgesenergi.no/favicon.ico",
+  "Lyse": "https://www.lyse.no/assets/images/favicon.ico",
+  
+  // Bank/loan providers
+  "DNB": "https://www.dnb.no/favicon.ico",
+  "Nordea": "https://www.nordea.no/Images/144-267091/favicon.ico",
+  "Sparebank1": "https://www.sparebank1.no/content/dam/SB1/favicon/favicon-32x32.png",
+  "Danske Bank": "https://danskebank.no/favicon.ico",
+  "Sbanken": "https://www.sbanken.no/Static/favicon.ico"
+};
 
 const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   const { language } = useLanguage();
@@ -41,20 +73,46 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
     return stars;
   };
   
+  // Get logo URL
+  const getLogo = () => {
+    // If provider has specific logo in our map, use it
+    if (logoMap[provider.name]) {
+      return logoMap[provider.name];
+    }
+    
+    // If provider has a logo URL already, use it
+    if (provider.logo && provider.logo.startsWith('http')) {
+      return provider.logo;
+    }
+    
+    // Fallback to a generated placeholder with initials
+    return '';
+  };
+
+  // Generate initials for avatar fallback
+  const getInitials = () => {
+    return provider.name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
       <div className="flex items-center mb-4">
         <div className="w-24 h-16 bg-white rounded flex items-center justify-center overflow-hidden mr-3 border border-gray-100">
-          <img 
-            src={provider.logo} 
-            alt={`${provider.name} logo`} 
-            className="max-w-full max-h-full object-contain p-1"
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              target.onerror = null;
-              target.src = 'https://via.placeholder.com/100x60?text=' + provider.name;
-            }}
-          />
+          <Avatar className="w-14 h-14">
+            <AvatarImage 
+              src={getLogo()} 
+              alt={`${provider.name} logo`}
+              className="object-contain"
+            />
+            <AvatarFallback className="text-lg bg-sky-100 text-sky-700">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
         </div>
         <div>
           <h3 className="font-semibold text-lg">{provider.name}</h3>
