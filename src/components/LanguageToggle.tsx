@@ -17,8 +17,8 @@ const LanguageToggle = () => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-2">
-          {language === 'nb' ? '🇳🇴' : '🇬🇧'}
-          <span className="hidden md:inline">
+          <span className="text-xl">{language === 'nb' ? '🇳🇴' : '🇬🇧'}</span>
+          <span className="hidden md:inline font-medium">
             {language === 'nb' ? 'Norsk' : 'English'}
           </span>
         </Button>
@@ -26,13 +26,13 @@ const LanguageToggle = () => {
       <DropdownMenuContent align="end" className="bg-white">
         <DropdownMenuItem onClick={() => setLanguage('nb')} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            🇳🇴 Norsk
+            <span className="text-xl">🇳🇴</span> Norsk
           </span>
           {language === 'nb' && <Check size={16} />}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setLanguage('en')} className="flex items-center justify-between">
           <span className="flex items-center gap-2">
-            🇬🇧 English
+            <span className="text-xl">🇬🇧</span> English
           </span>
           {language === 'en' && <Check size={16} />}
         </DropdownMenuItem>

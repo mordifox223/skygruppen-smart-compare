@@ -42,18 +42,23 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   };
   
   return (
-    <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white">
+    <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
       <div className="flex items-center mb-4">
-        <div className="w-20 h-12 bg-gray-50 rounded flex items-center justify-center overflow-hidden mr-3">
+        <div className="w-24 h-16 bg-white rounded flex items-center justify-center overflow-hidden mr-3 border border-gray-100">
           <img 
             src={provider.logo} 
             alt={`${provider.name} logo`} 
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-full object-contain p-1"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.onerror = null;
+              target.src = 'https://via.placeholder.com/100x60?text=' + provider.name;
+            }}
           />
         </div>
         <div>
           <h3 className="font-semibold text-lg">{provider.name}</h3>
-          <div className="flex">{renderRating()}</div>
+          <div className="flex mt-1">{renderRating()}</div>
         </div>
       </div>
       
@@ -62,7 +67,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
           {provider.price} <span className="text-sm font-normal">{provider.priceLabel[language]}</span>
         </div>
         
-        <ul className="mt-3 space-y-1">
+        <ul className="mt-3 space-y-2">
           {provider.features[language].map((feature, idx) => (
             <li key={idx} className="text-sm flex items-start">
               <span className="text-green-500 mr-2 font-bold">✓</span>
@@ -73,7 +78,12 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       </div>
       
       <Button 
-        className="w-full bg-sky-600 hover:bg-sky-700 mt-auto"
+        className={cn("w-full bg-sky-600 hover:bg-sky-700 mt-auto", 
+          provider.category === 'electricity' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+          provider.category === 'insurance' ? 'bg-blue-600 hover:bg-blue-700' :
+          provider.category === 'loan' ? 'bg-purple-600 hover:bg-purple-700' : 
+          'bg-sky-600 hover:bg-sky-700'
+        )}
         asChild
       >
         <a 

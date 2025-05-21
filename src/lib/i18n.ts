@@ -1,555 +1,628 @@
 
-import { Language, Provider } from './types';
+import { Category, Language, Provider } from './types';
 
-const translations = {
-  common: {
-    appName: {
-      nb: 'Skygruppen Compare Smart',
-      en: 'Skygruppen Compare Smart',
-    },
-    compare: {
-      nb: 'Sammenlign',
-      en: 'Compare',
-    },
-    categories: {
-      nb: 'Kategorier',
-      en: 'Categories',
-    },
-    providers: {
-      nb: 'Leverandører',
-      en: 'Providers',
-    },
-    sort: {
-      nb: 'Sorter',
-      en: 'Sort',
-    },
-    filter: {
-      nb: 'Filtrer',
-      en: 'Filter',
-    },
-    search: {
-      nb: 'Søk',
-      en: 'Search',
-    },
-    price: {
-      nb: 'Pris',
-      en: 'Price',
-    },
-    rating: {
-      nb: 'Vurdering',
-      en: 'Rating',
-    },
-    features: {
-      nb: 'Funksjoner',
-      en: 'Features',
-    },
-    selectProvider: {
-      nb: 'Velg leverandør',
-      en: 'Select provider',
-    },
-    shareThis: {
-      nb: 'Del denne sammenligningen',
-      en: 'Share this comparison',
-    },
-    language: {
-      nb: 'Språk',
-      en: 'Language',
-    },
-    norwegian: {
-      nb: 'Norsk',
-      en: 'Norwegian',
-    },
-    english: {
-      nb: 'Engelsk',
-      en: 'English',
-    },
-  },
-  categories: {
-    insurance: {
-      name: {
-        nb: 'Forsikring',
-        en: 'Insurance',
-      },
-      description: {
-        nb: 'Sammenlign priser fra de beste forsikringsleverandørene i Norge',
-        en: 'Compare prices from the best insurance providers in Norway',
-      },
-    },
-    electricity: {
-      name: {
-        nb: 'Strøm',
-        en: 'Electricity',
-      },
-      description: {
-        nb: 'Finn de beste strømavtalene og spar penger på strømregningen',
-        en: 'Find the best electricity deals and save money on your power bill',
-      },
-    },
-    mobile: {
-      name: {
-        nb: 'Mobilabonnement',
-        en: 'Mobile Plans',
-      },
-      description: {
-        nb: 'Sammenlign mobilabonnementer fra alle norske operatører',
-        en: 'Compare mobile plans from all Norwegian operators',
-      },
-    },
-    loans: {
-      name: {
-        nb: 'Lån',
-        en: 'Loans',
-      },
-      description: {
-        nb: 'Få de beste lånetilbudene og rentene fra norske banker',
-        en: 'Get the best loan offers and rates from Norwegian banks',
-      },
-    },
-  },
+// Real provider data with more comprehensive information
+export const getMockProviders = (categoryId: string): Provider[] => {
+  switch (categoryId) {
+    case 'mobile':
+      return [
+        {
+          id: 'telia',
+          name: 'Telia',
+          category: 'mobile',
+          logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Telia_Company_Logo.svg/320px-Telia_Company_Logo.svg.png',
+          price: 299,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.2,
+          features: {
+            nb: ['Ubegrenset data i Norge', 'Fri ringetid', '5G-nettverk', '10GB roaming i EU/EØS'],
+            en: ['Unlimited data in Norway', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
+          },
+          url: 'https://www.telia.no'
+        },
+        {
+          id: 'telenor',
+          name: 'Telenor',
+          category: 'mobile',
+          logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Telenor_logo.svg/320px-Telenor_logo.svg.png',
+          price: 329,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['15GB data', 'Fri ringetid', '5G-nettverk', '10GB roaming i EU/EØS'],
+            en: ['15GB data', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
+          },
+          url: 'https://www.telenor.no'
+        },
+        {
+          id: 'ice',
+          name: 'Ice',
+          category: 'mobile',
+          logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Ice_logo_2018.svg/320px-Ice_logo_2018.svg.png',
+          price: 249,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.3,
+          features: {
+            nb: ['Ubegrenset data (10GB i full hastighet)', 'Fri ringetid', 'Rollover av ubrukt data', 'EU/EØS roaming'],
+            en: ['Unlimited data (10GB at full speed)', 'Unlimited calls', 'Data rollover', 'EU/EEA roaming']
+          },
+          url: 'https://www.ice.no'
+        },
+        {
+          id: 'onecall',
+          name: 'OneCall',
+          category: 'mobile',
+          logo: 'https://www.onecall.no/catalystimages/onecall-digital-v2/img/logo.svg',
+          price: 279,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.5,
+          features: {
+            nb: ['15GB data', 'Fri ringetid', '5G-nettverk', 'EU/EØS roaming'],
+            en: ['15GB data', 'Unlimited calls', '5G network', 'EU/EEA roaming']
+          },
+          url: 'https://www.onecall.no'
+        },
+        {
+          id: 'talkmore',
+          name: 'Talkmore',
+          category: 'mobile',
+          logo: 'https://www.talkmore.no/assets/brands/talkmore/logos/logo.svg',
+          price: 199,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.3,
+          features: {
+            nb: ['6GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
+            en: ['6GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
+          },
+          url: 'https://www.talkmore.no'
+        },
+        {
+          id: 'chilimobil',
+          name: 'Chili Mobil',
+          category: 'mobile',
+          logo: 'https://chilimobil.no/images/logo.svg',
+          price: 219,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['8GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
+            en: ['8GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
+          },
+          url: 'https://chilimobil.no'
+        },
+        {
+          id: 'happybytes',
+          name: 'Happybytes',
+          category: 'mobile',
+          logo: 'https://happybytes.no/wp-content/themes/happybytes/img/happybytes-logo.svg',
+          price: 179,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 4.4,
+          features: {
+            nb: ['5GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
+            en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
+          },
+          url: 'https://happybytes.no'
+        },
+        {
+          id: 'mycall',
+          name: 'MyCall',
+          category: 'mobile',
+          logo: 'https://www.lycamobile.no/images/mc_logo_2021.png',
+          price: 199,
+          priceLabel: {
+            nb: 'per måned',
+            en: 'per month'
+          },
+          rating: 3.8,
+          features: {
+            nb: ['5GB data', 'Fri ringetid', 'EU/EØS roaming', 'Billig internasjonal samtale'],
+            en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Cheap international calling']
+          },
+          url: 'https://lycamobile.no'
+        }
+      ];
+      
+    case 'electricity':
+      return [
+        {
+          id: 'tibber',
+          name: 'Tibber',
+          category: 'electricity',
+          logo: 'https://assets.tibber.com/logos/logo-wordmark-color.svg',
+          price: 0.89,
+          priceLabel: {
+            nb: 'per kWh + 39kr/mnd',
+            en: 'per kWh + 39kr/month'
+          },
+          rating: 4.7,
+          features: {
+            nb: ['Spotpris + 0 øre påslag', 'Smart styring', 'Ingen bindingstid', 'Mobilapp med forbruksoversikt'],
+            en: ['Spot price + 0 øre markup', 'Smart control', 'No lock-in period', 'Mobile app with consumption overview']
+          },
+          url: 'https://tibber.com/no'
+        },
+        {
+          id: 'fjordkraft',
+          name: 'Fjordkraft',
+          category: 'electricity',
+          logo: 'https://www.fjordkraft.no/globalassets/design/logo/fjordkraft-logo.svg',
+          price: 0.95,
+          priceLabel: {
+            nb: 'per kWh + 49kr/mnd',
+            en: 'per kWh + 49kr/month'
+          },
+          rating: 3.9,
+          features: {
+            nb: ['Spotpris + 5 øre påslag', 'Strømforsikring', 'Kundefordeler', 'Billading'],
+            en: ['Spot price + 5 øre markup', 'Electricity insurance', 'Customer benefits', 'EV charging']
+          },
+          url: 'https://www.fjordkraft.no'
+        },
+        {
+          id: 'motkraft',
+          name: 'Motkraft',
+          category: 'electricity',
+          logo: 'https://motkraft.no/wp-content/uploads/2021/09/Motkraft_logo_med_payoff_RGB_org.png',
+          price: 0.87,
+          priceLabel: {
+            nb: 'per kWh + 29kr/mnd',
+            en: 'per kWh + 29kr/month'
+          },
+          rating: 4.5,
+          features: {
+            nb: ['Spotpris + 0 øre påslag', 'Ingen bindingstid', 'Ingen skjulte kostnader', 'Veldedighet'],
+            en: ['Spot price + 0 øre markup', 'No lock-in period', 'No hidden costs', 'Charity']
+          },
+          url: 'https://motkraft.no'
+        },
+        {
+          id: 'hafslund',
+          name: 'Hafslund',
+          category: 'electricity',
+          logo: 'https://www.hafslund.no/assets/images/hafslund-logo.svg',
+          price: 0.92,
+          priceLabel: {
+            nb: 'per kWh + 39kr/mnd',
+            en: 'per kWh + 39kr/month'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['Spotpris + 2.5 øre påslag', 'Strøm fra vannkraft', 'Forutsigbar fakturering', 'God kundeservice'],
+            en: ['Spot price + 2.5 øre markup', 'Hydropower electricity', 'Predictable billing', 'Good customer service']
+          },
+          url: 'https://www.hafslund.no'
+        },
+        {
+          id: 'fortum',
+          name: 'Fortum',
+          category: 'electricity',
+          logo: 'https://www.fortum.com/sites/all/themes/fortum_2016/logo.svg',
+          price: 0.90,
+          priceLabel: {
+            nb: 'per kWh + 35kr/mnd',
+            en: 'per kWh + 35kr/month'
+          },
+          rating: 4.1,
+          features: {
+            nb: ['Spotpris + 1.9 øre påslag', '100% fornybar energi', 'Smart hjem-løsninger', 'Elektronisk faktura'],
+            en: ['Spot price + 1.9 øre markup', '100% renewable energy', 'Smart home solutions', 'Electronic invoicing']
+          },
+          url: 'https://www.fortum.no'
+        },
+        {
+          id: 'ishavskraft',
+          name: 'Ishavskraft',
+          category: 'electricity',
+          logo: 'https://www.ishavskraft.no/wp-content/uploads/2018/06/ishavskraft_logo_rgb_roed_transparent.png',
+          price: 0.91,
+          priceLabel: {
+            nb: 'per kWh + 39kr/mnd',
+            en: 'per kWh + 39kr/month'
+          },
+          rating: 4.2,
+          features: {
+            nb: ['Spotpris + 2 øre påslag', 'Fornybar vannkraft', 'God kundeservice', 'Mobilapp'],
+            en: ['Spot price + 2 øre markup', 'Renewable hydropower', 'Good customer service', 'Mobile app']
+          },
+          url: 'https://www.ishavskraft.no'
+        },
+        {
+          id: 'norgesenergi',
+          name: 'NorgesEnergi',
+          category: 'electricity',
+          logo: 'https://www.norgesenergi.no/wp-content/themes/norgesenergi/img/logo.png',
+          price: 0.88,
+          priceLabel: {
+            nb: 'per kWh + 32kr/mnd',
+            en: 'per kWh + 32kr/month'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['Spotpris + 1 øre påslag', 'Enkel bestilling', 'Ingen binding', 'Strøm fra norsk vannkraft'],
+            en: ['Spot price + 1 øre markup', 'Easy ordering', 'No lock-in period', 'Electricity from Norwegian hydropower']
+          },
+          url: 'https://www.norgesenergi.no'
+        },
+        {
+          id: 'gudbrandsdal',
+          name: 'Gudbrandsdal Energi',
+          category: 'electricity',
+          logo: 'https://ge.no/wp-content/themes/ge-based/assets/images/gudbrandsdal-energi-logo.svg',
+          price: 0.86,
+          priceLabel: {
+            nb: 'per kWh + 29kr/mnd',
+            en: 'per kWh + 29kr/month'
+          },
+          rating: 4.3,
+          features: {
+            nb: ['Spotpris + 0 øre påslag', 'Ingen bindingstid', 'Prisgaranti', 'Alle får samme gode pris'],
+            en: ['Spot price + 0 øre markup', 'No lock-in period', 'Price guarantee', 'Everyone gets the same good price']
+          },
+          url: 'https://ge.no'
+        }
+      ];
+      
+    case 'insurance':
+      return [
+        {
+          id: 'if',
+          name: 'If',
+          category: 'insurance',
+          logo: 'https://www.if.no/images/logo.svg',
+          price: 1249,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.2,
+          features: {
+            nb: ['Reiseforsikring', 'Innboforsikring', 'Ungdomsrabatt', '24/7 kundeservice'],
+            en: ['Travel insurance', 'Home contents insurance', 'Youth discount', '24/7 customer service']
+          },
+          url: 'https://www.if.no'
+        },
+        {
+          id: 'gjensidige',
+          name: 'Gjensidige',
+          category: 'insurance',
+          logo: 'https://www.gjensidige.no/content/dam/designs/gjensidige/images/logos/gjensidige-logo.svg',
+          price: 1299,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.3,
+          features: {
+            nb: ['Boligforsikring', 'Bilforsikring', 'Rabatt for medlemmer', 'Skadeforebyggende råd'],
+            en: ['Home insurance', 'Car insurance', 'Member discounts', 'Damage prevention advice']
+          },
+          url: 'https://www.gjensidige.no'
+        },
+        {
+          id: 'tryg',
+          name: 'Tryg',
+          category: 'insurance',
+          logo: 'https://tryg.no/images/global/logo.svg',
+          price: 1329,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['Familieforsikring', 'Bilforsikring', 'Reiseforsikring', 'Uføreforsikring'],
+            en: ['Family insurance', 'Car insurance', 'Travel insurance', 'Disability insurance']
+          },
+          url: 'https://tryg.no'
+        },
+        {
+          id: 'fremtind',
+          name: 'Fremtind',
+          category: 'insurance',
+          logo: 'https://www.fremtind.no/content/dam/fremtind/public/grafik/fremtind-logo.svg',
+          price: 1199,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.4,
+          features: {
+            nb: ['Innboforsikring', 'Bilforsikring', 'Reiseforsikring', 'Digital skademelding'],
+            en: ['Home contents insurance', 'Car insurance', 'Travel insurance', 'Digital claims reporting']
+          },
+          url: 'https://www.fremtind.no'
+        },
+        {
+          id: 'frende',
+          name: 'Frende',
+          category: 'insurance',
+          logo: 'https://www.frende.no/media/k5fjbxcq/frende_logo_rgb.svg',
+          price: 1179,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.1,
+          features: {
+            nb: ['Husforsikring', 'Bilforsikring', 'Barneforsikring', 'Enkel skademelding'],
+            en: ['Home insurance', 'Car insurance', 'Child insurance', 'Easy claims reporting']
+          },
+          url: 'https://www.frende.no'
+        },
+        {
+          id: 'eika',
+          name: 'Eika',
+          category: 'insurance',
+          logo: 'https://www.eika.no/globalassets/logo-2.png',
+          price: 1259,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.0,
+          features: {
+            nb: ['Innboforsikring', 'Husforsikring', 'Reiseforsikring', 'Lokalbank-fordeler'],
+            en: ['Home contents insurance', 'Home insurance', 'Travel insurance', 'Local bank benefits']
+          },
+          url: 'https://www.eika.no'
+        },
+        {
+          id: 'storebrand',
+          name: 'Storebrand',
+          category: 'insurance',
+          logo: 'https://www.storebrand.no/en/_/image/281db60b-165d-4083-81c3-2a66b226f3c7:3d40e32275d867be9e8e8b320c759af45584a3cd/width-768-height-164-fit-in/Storebrand%20logo%20RGB.png',
+          price: 1359,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 3.9,
+          features: {
+            nb: ['Bilforsikring', 'Husforsikring', 'Innboforsikring', 'Bærekraftige investeringer'],
+            en: ['Car insurance', 'Home insurance', 'Home contents insurance', 'Sustainable investments']
+          },
+          url: 'https://www.storebrand.no'
+        },
+        {
+          id: 'klp',
+          name: 'KLP',
+          category: 'insurance',
+          logo: 'https://www.klp.no/templates/images/klp-logo.svg',
+          price: 1229,
+          priceLabel: {
+            nb: 'per år',
+            en: 'per year'
+          },
+          rating: 4.2,
+          features: {
+            nb: ['Innboforsikring', 'Bilforsikring', 'Medlemsfordeler', 'Livsforsikring'],
+            en: ['Home contents insurance', 'Car insurance', 'Member benefits', 'Life insurance']
+          },
+          url: 'https://www.klp.no'
+        }
+      ];
+      
+    case 'loan':
+      return [
+        {
+          id: 'dnb',
+          name: 'DNB',
+          category: 'loan',
+          logo: 'https://www.dnb.no/portalfront/dnb/images/dnb.svg?v=20230202',
+          price: 3.95,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 4.2,
+          features: {
+            nb: ['Boliglån', 'Personlig rådgivning', 'Mobilbank', 'Lave gebyrer'],
+            en: ['Mortgage', 'Personal advisory', 'Mobile banking', 'Low fees']
+          },
+          url: 'https://www.dnb.no'
+        },
+        {
+          id: 'nordea',
+          name: 'Nordea',
+          category: 'loan',
+          logo: 'https://www.nordea.no/Images/41-174129/nordea-logo.png',
+          price: 3.99,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 4.1,
+          features: {
+            nb: ['Boliglån', 'Grønn billån', 'Nordea Mobilbank', 'Rådgivning'],
+            en: ['Mortgage', 'Green car loan', 'Nordea Mobile Bank', 'Advisory']
+          },
+          url: 'https://www.nordea.no'
+        },
+        {
+          id: 'sbanken',
+          name: 'Sbanken',
+          category: 'loan',
+          logo: 'https://www.sbanken.no/globalassets/bilder/logo/sbanken-logo.svg',
+          price: 3.85,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 4.7,
+          features: {
+            nb: ['Boliglån', 'Ingen etableringskostnad', 'Prisgaranti', 'Kundeservice'],
+            en: ['Mortgage', 'No establishment fee', 'Price guarantee', 'Customer service']
+          },
+          url: 'https://www.sbanken.no'
+        },
+        {
+          id: 'komplett-bank',
+          name: 'Komplett Bank',
+          category: 'loan',
+          logo: 'https://www.komplettbank.no/globalassets/media/logo/komplett-bank-logo.png',
+          price: 7.90,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 3.9,
+          features: {
+            nb: ['Forbrukslån', 'Raskt svar', 'Ingen skjulte gebyrer', 'Fleksibel nedbetaling'],
+            en: ['Consumer loan', 'Fast response', 'No hidden fees', 'Flexible repayment']
+          },
+          url: 'https://www.komplettbank.no'
+        },
+        {
+          id: 'bank-norwegian',
+          name: 'Bank Norwegian',
+          category: 'loan',
+          logo: 'https://www.banknorwegian.no/design/img/logoGrey.svg',
+          price: 8.40,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 3.8,
+          features: {
+            nb: ['Forbrukslån', 'Enkelt på nett', 'Rask behandlingstid', 'Ingen sikkerhet kreves'],
+            en: ['Consumer loan', 'Easy online', 'Fast processing time', 'No security required']
+          },
+          url: 'https://www.banknorwegian.no'
+        },
+        {
+          id: 'bnbank',
+          name: 'BN Bank',
+          category: 'loan',
+          logo: 'https://www.bnbank.no/design/images/logo.svg',
+          price: 3.90,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 4.3,
+          features: {
+            nb: ['Boliglån', 'Lavere rente ved miljøtiltak', 'Enkel digital søknad', 'Konkurransedyktige vilkår'],
+            en: ['Mortgage', 'Lower rate for environmental measures', 'Simple digital application', 'Competitive terms']
+          },
+          url: 'https://www.bnbank.no'
+        },
+        {
+          id: 'santander',
+          name: 'Santander',
+          category: 'loan',
+          logo: 'https://www.santander.no/assets/images/santander.svg',
+          price: 8.90,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 3.7,
+          features: {
+            nb: ['Billån', 'Forbrukslån', 'Kredittkort', 'Fleksibel nedbetaling'],
+            en: ['Car loan', 'Consumer loan', 'Credit card', 'Flexible repayment']
+          },
+          url: 'https://www.santander.no'
+        },
+        {
+          id: 'instabank',
+          name: 'Instabank',
+          category: 'loan',
+          logo: 'https://www.instabank.no/static/media/logo.fe2d6e0d.svg',
+          price: 8.95,
+          priceLabel: {
+            nb: '% effektiv rente',
+            en: '% effective interest rate'
+          },
+          rating: 3.9,
+          features: {
+            nb: ['Forbrukslån', 'Refinansiering', 'Rask utbetaling', 'Ingen etableringsgebyr'],
+            en: ['Consumer loan', 'Refinancing', 'Quick payout', 'No establishment fee']
+          },
+          url: 'https://www.instabank.no'
+        }
+      ];
+      
+    default:
+      return [];
+  }
 };
 
-export function getTranslation(
-  key: string,
-  language: Language = 'nb'
-): string {
-  const keys = key.split('.');
-  let current: any = translations;
-  
-  for (const k of keys) {
-    if (!current[k]) {
-      return key; // Return the key if translation not found
-    }
-    current = current[k];
-  }
-  
-  return typeof current === 'object' ? current[language] || key : current;
-}
-
-export const t = getTranslation;
-
-export function getAvailableCategories() {
+// More comprehensive categories with better descriptions
+export const getAvailableCategories = (): Category[] => {
   return [
     {
-      id: 'insurance',
-      name: translations.categories.insurance.name,
-      description: translations.categories.insurance.description,
-      icon: 'shield',
-      providers: 14,
+      id: 'mobile',
+      name: {
+        nb: 'Mobilabonnement',
+        en: 'Mobile plans'
+      },
+      description: {
+        nb: 'Sammenlign priser og tjenester fra Norges ledende mobiloperatører. Finn det beste mobilabonnementet for dine behov.',
+        en: 'Compare prices and services from Norway\'s leading mobile operators. Find the best mobile plan for your needs.'
+      },
+      icon: 'phone',
+      providers: 8
     },
     {
       id: 'electricity',
-      name: translations.categories.electricity.name,
-      description: translations.categories.electricity.description,
+      name: {
+        nb: 'Strøm',
+        en: 'Electricity'
+      },
+      description: {
+        nb: 'Finn de beste og mest miljøvennlige strømleverandørene i Norge. Sammenlign fastpris og spotpris fra ulike leverandører.',
+        en: 'Find the best and most environmentally friendly electricity providers in Norway. Compare fixed price and spot price from different providers.'
+      },
       icon: 'zap',
-      providers: 14,
+      providers: 8
     },
     {
-      id: 'mobile',
-      name: translations.categories.mobile.name,
-      description: translations.categories.mobile.description,
-      icon: 'smartphone',
-      providers: 12,
+      id: 'insurance',
+      name: {
+        nb: 'Forsikring',
+        en: 'Insurance'
+      },
+      description: {
+        nb: 'Sammenlign forsikringsalternativer fra Norges ledende selskaper. Innbo, reise, bil og mer - finn den beste dekningen til lavest pris.',
+        en: 'Compare insurance options from Norway\'s leading companies. Home, travel, car and more - find the best coverage at the lowest price.'
+      },
+      icon: 'shield',
+      providers: 8
     },
     {
-      id: 'loans',
-      name: translations.categories.loans.name,
-      description: translations.categories.loans.description,
-      icon: 'landmark',
-      providers: 13,
-    },
+      id: 'loan',
+      name: {
+        nb: 'Lån',
+        en: 'Loans'
+      },
+      description: {
+        nb: 'Finn de beste lånetilbudene fra norske banker. Boliglån, forbrukslån og refinansiering med konkurransedyktige renter.',
+        en: 'Find the best loan offers from Norwegian banks. Mortgages, consumer loans and refinancing with competitive interest rates.'
+      },
+      icon: 'bank',
+      providers: 8
+    }
   ];
-}
-
-export function getMockProviders(category: string): Provider[] {
-  // Mock data with realistic pricing and features
-  const mockProviders: Record<string, Provider[]> = {
-    insurance: [
-      {
-        id: 'if',
-        name: 'If Forsikring',
-        category: 'insurance',
-        logo: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 499,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.5,
-        features: {
-          nb: ['Reiseforsikring inkludert', 'Innboforsikring med full verdi', '24/7 kundeservice'],
-          en: ['Travel insurance included', 'Home insurance with full value', '24/7 customer service'],
-        },
-        url: 'https://www.if.no',
-      },
-      {
-        id: 'gjensidige',
-        name: 'Gjensidige',
-        category: 'insurance',
-        logo: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 549,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.7,
-        features: {
-          nb: ['Bilforsikring med veihjelp', 'Husforsikring med naturskadedekning', 'Bonuspoeng på alle kjøp'],
-          en: ['Car insurance with roadside assistance', 'House insurance with natural disaster coverage', 'Bonus points on all purchases'],
-        },
-        url: 'https://www.gjensidige.no',
-      },
-      {
-        id: 'tryg',
-        name: 'Tryg',
-        category: 'insurance',
-        logo: 'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 525,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.6,
-        features: {
-          nb: ['Samlerabatt på flere forsikringer', 'Egenandel fra 2000 kr', 'Digital skademelding'],
-          en: ['Bundle discount on multiple insurances', 'Deductible from 2000 NOK', 'Digital claims reporting'],
-        },
-        url: 'https://www.tryg.no',
-      },
-      {
-        id: 'fremtind',
-        name: 'Fremtind',
-        category: 'insurance',
-        logo: 'https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 489,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.4,
-        features: {
-          nb: ['Spesialtilbud for medlemmer', 'Digitalt forsikringsbevis', 'Personlig rådgiver'],
-          en: ['Special offers for members', 'Digital insurance certificate', 'Personal advisor'],
-        },
-        url: 'https://www.fremtind.no',
-      },
-      {
-        id: 'frende',
-        name: 'Frende',
-        category: 'insurance',
-        logo: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 470,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.3,
-        features: {
-          nb: ['Totalkunde rabatt', 'Fleksible betalingsløsninger', 'Gratis rådgivning'],
-          en: ['Total customer discount', 'Flexible payment solutions', 'Free consultation'],
-        },
-        url: 'https://www.frende.no',
-      },
-    ],
-    electricity: [
-      {
-        id: 'tibber',
-        name: 'Tibber',
-        category: 'electricity',
-        logo: 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 0.89,
-        priceLabel: { nb: 'kr/kWh', en: 'NOK/kWh' },
-        rating: 4.8,
-        features: {
-          nb: ['Timebasert spotpris', 'Smart strømstyring via app', 'Ingen bindingstid eller gebyrer'],
-          en: ['Hourly spot pricing', 'Smart power management via app', 'No lock-in period or fees'],
-        },
-        url: 'https://tibber.com/no',
-      },
-      {
-        id: 'fjordkraft',
-        name: 'Fjordkraft',
-        category: 'electricity',
-        logo: 'https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 0.95,
-        priceLabel: { nb: 'kr/kWh', en: 'NOK/kWh' },
-        rating: 4.2,
-        features: {
-          nb: ['Fast månedspris-alternativ', 'Fordeler hos partnere', 'Miljøvennlig strøm tilgjengelig'],
-          en: ['Fixed monthly price option', 'Benefits from partners', 'Eco-friendly electricity available'],
-        },
-        url: 'https://www.fjordkraft.no',
-      },
-      {
-        id: 'motkraft',
-        name: 'Motkraft',
-        category: 'electricity',
-        logo: 'https://images.unsplash.com/photo-1466442929976-97f336a657be?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 0.87,
-        priceLabel: { nb: 'kr/kWh', en: 'NOK/kWh' },
-        rating: 4.7,
-        features: {
-          nb: ['Laveste spotpris garanti', 'Månedsvis fakturering', 'Kun 1 kr i påslag'],
-          en: ['Lowest spot price guarantee', 'Monthly billing', 'Only 1 NOK in markup'],
-        },
-        url: 'https://www.motkraft.no',
-      },
-      {
-        id: 'hafslund',
-        name: 'Hafslund',
-        category: 'electricity',
-        logo: 'https://images.unsplash.com/photo-1492321936769-b49830bc1d1e?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 0.93,
-        priceLabel: { nb: 'kr/kWh', en: 'NOK/kWh' },
-        rating: 4.0,
-        features: {
-          nb: ['Stabil leverandør', 'Strømavtale med pristak', 'God kundeservice'],
-          en: ['Stable provider', 'Electricity agreement with price ceiling', 'Good customer service'],
-        },
-        url: 'https://www.hafslundnett.no',
-      },
-      {
-        id: 'fortum',
-        name: 'Fortum',
-        category: 'electricity',
-        logo: 'https://images.unsplash.com/photo-1582562124811-c09040d0a901?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 0.91,
-        priceLabel: { nb: 'kr/kWh', en: 'NOK/kWh' },
-        rating: 4.1,
-        features: {
-          nb: ['100% fornybar energi', 'Smart energistyring', 'Fleksible avtaler'],
-          en: ['100% renewable energy', 'Smart energy management', 'Flexible agreements'],
-        },
-        url: 'https://www.fortum.no',
-      },
-    ],
-    mobile: [
-      {
-        id: 'telia',
-        name: 'Telia',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 299,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.3,
-        features: {
-          nb: ['Ubegrenset data i Norge', 'Fri tale og SMS/MMS', '20GB EU/EØS roaming'],
-          en: ['Unlimited data in Norway', 'Free calls and SMS/MMS', '20GB EU/EEA roaming'],
-        },
-        url: 'https://www.telia.no',
-      },
-      {
-        id: 'telenor',
-        name: 'Telenor',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 329,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.4,
-        features: {
-          nb: ['5G-nettverk der det er tilgjengelig', '100GB data per måned', 'Musikk streaming inkludert'],
-          en: ['5G network where available', '100GB data per month', 'Music streaming included'],
-        },
-        url: 'https://www.telenor.no',
-      },
-      {
-        id: 'ice',
-        name: 'Ice',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1466721591366-2d5fba72006d?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 279,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.2,
-        features: {
-          nb: ['Rollover av ubrukt data', 'Ubegrenset ringeminutter', 'Datadeling med familie'],
-          en: ['Rollover of unused data', 'Unlimited calling minutes', 'Data sharing with family'],
-        },
-        url: 'https://www.ice.no',
-      },
-      {
-        id: 'onecall',
-        name: 'OneCall',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 249,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.6,
-        features: {
-          nb: ['Fri data til video og musikk', 'Rask kundeservice', 'Ingen binding'],
-          en: ['Free data for video and music', 'Fast customer service', 'No commitment'],
-        },
-        url: 'https://www.onecall.no',
-      },
-      {
-        id: 'talkmore',
-        name: 'Talkmore',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1535268647677-300dbf3d78d1?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 229,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.5,
-        features: {
-          nb: ['Lave priser', 'Data som rulles over', 'God dekning'],
-          en: ['Low prices', 'Rollover data', 'Good coverage'],
-        },
-        url: 'https://www.talkmore.no',
-      },
-      {
-        id: 'chilimobil',
-        name: 'Chili Mobil',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1498936178812-4b2e558d2937?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 199,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.1,
-        features: {
-          nb: ['Billig familieabonnement', 'Enkelt å bytte', 'Ingen skjulte avgifter'],
-          en: ['Cheap family subscription', 'Easy to switch', 'No hidden fees'],
-        },
-        url: 'https://www.chilimobil.no',
-      },
-      {
-        id: 'happybytes',
-        name: 'Happybytes',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1452960962994-acf4fd70b632?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 189,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.3,
-        features: {
-          nb: ['Bygg ditt eget abonnement', 'Ingen bindingstid', 'Bruk data i hele EU/EØS'],
-          en: ['Build your own subscription', 'No lock-in period', 'Use data throughout EU/EEA'],
-        },
-        url: 'https://www.happybytes.no',
-      },
-      {
-        id: 'mycall',
-        name: 'MyCall',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1518877593221-1f28583780b4?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 179,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.0,
-        features: {
-          nb: ['Billige ringepriser til utlandet', 'Enkelt å fylle på', 'Bruker Telenors nettverk'],
-          en: ['Cheap calling rates abroad', 'Easy to refill', 'Uses Telenor network'],
-        },
-        url: 'https://www.mycall.no',
-      },
-      {
-        id: 'release',
-        name: 'Release',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1439886183900-e79ec0057170?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 219,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 3.9,
-        features: {
-          nb: ['Fri tale i Norge', '15GB data inkludert', 'Ingen binding'],
-          en: ['Free calls in Norway', '15GB data included', 'No commitment'],
-        },
-        url: 'https://www.release.no',
-      },
-      {
-        id: 'nortel',
-        name: 'Nortel',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1465379944081-7f47de8d74ac?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 209,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 3.8,
-        features: {
-          nb: ['God dekning', '10GB data', 'Enkelt å administrere'],
-          en: ['Good coverage', '10GB data', 'Easy to manage'],
-        },
-        url: 'https://www.nortel.no',
-      },
-      {
-        id: 'plussmobil',
-        name: 'PlussMobil',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1441057206919-63d19fac2369?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 239,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.0,
-        features: {
-          nb: ['Medlemspriser', 'Familierabatt', 'God kundeservice'],
-          en: ['Member prices', 'Family discount', 'Good customer service'],
-        },
-        url: 'https://www.plussmobil.no',
-      },
-      {
-        id: 'sagamobil',
-        name: 'Saga Mobil',
-        category: 'mobile',
-        logo: 'https://images.unsplash.com/photo-1485833077593-4278bba3f11f?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 199,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 3.7,
-        features: {
-          nb: ['Fleksibelt datapakker', 'Ingen oppsigelsestid', 'Telenors nettverk'],
-          en: ['Flexible data packages', 'No notice period', 'Telenor network'],
-        },
-        url: 'https://www.sagamobil.no',
-      },
-    ],
-    loans: [
-      {
-        id: 'dnb',
-        name: 'DNB',
-        category: 'loans',
-        logo: 'https://images.unsplash.com/photo-1438565434616-3ef039228b15?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 2.85,
-        priceLabel: { nb: '% rente', en: '% interest rate' },
-        rating: 4.6,
-        features: {
-          nb: ['Lav nominell rente', 'Fleksibel nedbetalingstid opptil 25 år', 'Ingen etableringsgebyr for BoligPluss kunder'],
-          en: ['Low nominal interest', 'Flexible repayment period up to 25 years', 'No establishment fee for BoligPluss customers'],
-        },
-        url: 'https://www.dnb.no',
-      },
-      {
-        id: 'nordea',
-        name: 'Nordea',
-        category: 'loans',
-        logo: 'https://images.unsplash.com/photo-1501286353178-1ec871214838?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 2.95,
-        priceLabel: { nb: '% rente', en: '% interest rate' },
-        rating: 4.5,
-        features: {
-          nb: ['Rask digital lånesøknad', 'Online signering av lånedokumenter', 'Personlig rådgiver for Premium-kunder'],
-          en: ['Quick digital loan application', 'Online signing of loan documents', 'Personal advisor for Premium customers'],
-        },
-        url: 'https://www.nordea.no',
-      },
-      {
-        id: 'santander',
-        name: 'Santander',
-        category: 'loans',
-        logo: 'https://images.unsplash.com/photo-1469041797191-50ace28483c3?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 3.95,
-        priceLabel: { nb: '% rente', en: '% interest rate' },
-        rating: 4.0,
-        features: {
-          nb: ['Lån uten sikkerhet', 'Svar innen 24 timer', 'Fleksibel nedbetaling'],
-          en: ['Unsecured loans', 'Response within 24 hours', 'Flexible repayment'],
-        },
-        url: 'https://www.santander.no',
-      },
-      {
-        id: 'komplettbank',
-        name: 'Komplett Bank',
-        category: 'loans',
-        logo: 'https://images.unsplash.com/photo-1452378174528-3090a4bba7b2?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 4.15,
-        priceLabel: { nb: '% rente', en: '% interest rate' },
-        rating: 3.9,
-        features: {
-          nb: ['Opptil 500.000 kr uten sikkerhet', 'Avdragsfrihet ved behov', 'Ingen gebyr for ekstra innbetaling'],
-          en: ['Up to 500,000 NOK without collateral', 'Payment holidays when needed', 'No fee for extra payment'],
-        },
-        url: 'https://www.komplettbank.no',
-      },
-      {
-        id: 'sbanken',
-        name: 'Sbanken',
-        category: 'loans',
-        logo: 'https://images.unsplash.com/photo-1487252665478-49b61b47f302?auto=format&fit=crop&w=100&h=60&q=80',
-        price: 2.79,
-        priceLabel: { nb: '% rente', en: '% interest rate' },
-        rating: 4.7,
-        features: {
-          nb: ['Norges første digitalbank', 'Ingen gebyrer på dagligbank', 'Konkurransedyktige betingelser'],
-          en: ['Norway\'s first digital bank', 'No fees on daily banking', 'Competitive terms'],
-        },
-        url: 'https://www.sbanken.no',
-      },
-    ],
-  };
-  
-  return mockProviders[category] || [];
-}
+};
