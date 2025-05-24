@@ -6,7 +6,7 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  base: '/skygruppen-smart-compare/',
+  base: '/skygruppen-smart-compare',
   server: {
     host: "::",
     port: 8080,
