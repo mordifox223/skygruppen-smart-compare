@@ -6,7 +6,6 @@ import { getMockProviders, getAvailableCategories } from '@/lib/i18n';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
-import QRCodeGenerator from '@/components/QRCodeGenerator';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -46,18 +45,11 @@ const Compare = () => {
         
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3">
+            <div className="lg:col-span-4">
               <ComparisonTable providers={providers} categoryId={categoryId} />
             </div>
             
             <div className="lg:col-span-1">
-              <div className="bg-white p-4 rounded-lg shadow-sm mb-6">
-                <h3 className="font-semibold mb-3 text-gray-800">
-                  {language === 'nb' ? 'Del denne sammenligningen' : 'Share this comparison'}
-                </h3>
-                <QRCodeGenerator />
-              </div>
-              
               {/* Information box */}
               <div className="bg-sky-50 p-4 rounded-lg shadow-sm">
                 <h3 className="font-semibold mb-2 text-sky-800">
