@@ -29,7 +29,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter basename="/skygruppen-smart-compare">
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/compare/:categoryId" element={<Compare />} />
