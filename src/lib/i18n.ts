@@ -1,4 +1,3 @@
-
 import { Category, Language, Provider } from './types';
 
 // Real provider data with more comprehensive information
@@ -21,7 +20,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Ubegrenset data i Norge', 'Fri ringetid', '5G-nettverk', '10GB roaming i EU/EØS'],
             en: ['Unlimited data in Norway', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
           },
-          url: 'https://www.telia.no'
+          url: 'https://www.telia.no',
+          offerUrl: 'https://www.telia.no/mobilabonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'telenor',
@@ -38,7 +39,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['15GB data', 'Fri ringetid', '5G-nettverk', '10GB roaming i EU/EØS'],
             en: ['15GB data', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
           },
-          url: 'https://www.telenor.no'
+          url: 'https://www.telenor.no',
+          offerUrl: 'https://www.telenor.no/privat/mobilabonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'ice',
@@ -55,7 +58,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Ubegrenset data (10GB i full hastighet)', 'Fri ringetid', 'Rollover av ubrukt data', 'EU/EØS roaming'],
             en: ['Unlimited data (10GB at full speed)', 'Unlimited calls', 'Data rollover', 'EU/EEA roaming']
           },
-          url: 'https://www.ice.no'
+          url: 'https://www.ice.no',
+          offerUrl: 'https://www.ice.no/abonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'onecall',
@@ -72,7 +77,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['15GB data', 'Fri ringetid', '5G-nettverk', 'EU/EØS roaming'],
             en: ['15GB data', 'Unlimited calls', '5G network', 'EU/EEA roaming']
           },
-          url: 'https://www.onecall.no'
+          url: 'https://www.onecall.no',
+          offerUrl: 'https://www.onecall.no/mobilabonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'talkmore',
@@ -89,7 +96,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['6GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
             en: ['6GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
           },
-          url: 'https://www.talkmore.no'
+          url: 'https://www.talkmore.no',
+          offerUrl: 'https://www.talkmore.no/mobilabonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'chilimobil',
@@ -106,7 +115,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['8GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
             en: ['8GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
           },
-          url: 'https://chilimobil.no'
+          url: 'https://chilimobil.no',
+          offerUrl: 'https://chilimobil.no/abonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'happybytes',
@@ -123,7 +134,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['5GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
             en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
           },
-          url: 'https://happybytes.no'
+          url: 'https://happybytes.no',
+          offerUrl: 'https://happybytes.no/mobilabonnement',
+          lastUpdated: new Date()
         },
         {
           id: 'mycall',
@@ -140,7 +153,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['5GB data', 'Fri ringetid', 'EU/EØS roaming', 'Billig internasjonal samtale'],
             en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Cheap international calling']
           },
-          url: 'https://lycamobile.no'
+          url: 'https://lycamobile.no',
+          offerUrl: 'https://lycamobile.no/mobilabonnement',
+          lastUpdated: new Date()
         }
       ];
       
@@ -161,7 +176,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 0 øre påslag', 'Smart styring', 'Ingen bindingstid', 'Mobilapp med forbruksoversikt'],
             en: ['Spot price + 0 øre markup', 'Smart control', 'No lock-in period', 'Mobile app with consumption overview']
           },
-          url: 'https://tibber.com/no'
+          url: 'https://tibber.com/no',
+          offerUrl: 'https://tibber.com/no/bestill',
+          lastUpdated: new Date()
         },
         {
           id: 'fjordkraft',
@@ -178,7 +195,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 5 øre påslag', 'Strømforsikring', 'Kundefordeler', 'Billading'],
             en: ['Spot price + 5 øre markup', 'Electricity insurance', 'Customer benefits', 'EV charging']
           },
-          url: 'https://www.fjordkraft.no'
+          url: 'https://www.fjordkraft.no',
+          offerUrl: 'https://www.fjordkraft.no/bestill-strom',
+          lastUpdated: new Date()
         },
         {
           id: 'motkraft',
@@ -195,7 +214,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 0 øre påslag', 'Ingen bindingstid', 'Ingen skjulte kostnader', 'Veldedighet'],
             en: ['Spot price + 0 øre markup', 'No lock-in period', 'No hidden costs', 'Charity']
           },
-          url: 'https://motkraft.no'
+          url: 'https://motkraft.no',
+          offerUrl: 'https://motkraft.no/bestill',
+          lastUpdated: new Date()
         },
         {
           id: 'hafslund',
@@ -212,7 +233,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 2.5 øre påslag', 'Strøm fra vannkraft', 'Forutsigbar fakturering', 'God kundeservice'],
             en: ['Spot price + 2.5 øre markup', 'Hydropower electricity', 'Predictable billing', 'Good customer service']
           },
-          url: 'https://www.hafslund.no'
+          url: 'https://www.hafslund.no',
+          offerUrl: 'https://www.hafslund.no/strom',
+          lastUpdated: new Date()
         },
         {
           id: 'fortum',
@@ -229,7 +252,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 1.9 øre påslag', '100% fornybar energi', 'Smart hjem-løsninger', 'Elektronisk faktura'],
             en: ['Spot price + 1.9 øre markup', '100% renewable energy', 'Smart home solutions', 'Electronic invoicing']
           },
-          url: 'https://www.fortum.no'
+          url: 'https://www.fortum.no',
+          offerUrl: 'https://www.fortum.no/privat/strom',
+          lastUpdated: new Date()
         },
         {
           id: 'ishavskraft',
@@ -246,7 +271,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 2 øre påslag', 'Fornybar vannkraft', 'God kundeservice', 'Mobilapp'],
             en: ['Spot price + 2 øre markup', 'Renewable hydropower', 'Good customer service', 'Mobile app']
           },
-          url: 'https://www.ishavskraft.no'
+          url: 'https://www.ishavskraft.no',
+          offerUrl: 'https://www.ishavskraft.no/strom',
+          lastUpdated: new Date()
         },
         {
           id: 'norgesenergi',
@@ -263,7 +290,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 1 øre påslag', 'Enkel bestilling', 'Ingen binding', 'Strøm fra norsk vannkraft'],
             en: ['Spot price + 1 øre markup', 'Easy ordering', 'No lock-in period', 'Electricity from Norwegian hydropower']
           },
-          url: 'https://www.norgesenergi.no'
+          url: 'https://www.norgesenergi.no',
+          offerUrl: 'https://www.norgesenergi.no/bestill',
+          lastUpdated: new Date()
         },
         {
           id: 'gudbrandsdal',
@@ -280,7 +309,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Spotpris + 0 øre påslag', 'Ingen bindingstid', 'Prisgaranti', 'Alle får samme gode pris'],
             en: ['Spot price + 0 øre markup', 'No lock-in period', 'Price guarantee', 'Everyone gets the same good price']
           },
-          url: 'https://ge.no'
+          url: 'https://ge.no',
+          offerUrl: 'https://ge.no/strom',
+          lastUpdated: new Date()
         }
       ];
       
@@ -301,7 +332,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Reiseforsikring', 'Innboforsikring', 'Ungdomsrabatt', '24/7 kundeservice'],
             en: ['Travel insurance', 'Home contents insurance', 'Youth discount', '24/7 customer service']
           },
-          url: 'https://www.if.no'
+          url: 'https://www.if.no',
+          offerUrl: 'https://www.if.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'gjensidige',
@@ -318,7 +351,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Boligforsikring', 'Bilforsikring', 'Rabatt for medlemmer', 'Skadeforebyggende råd'],
             en: ['Home insurance', 'Car insurance', 'Member discounts', 'Damage prevention advice']
           },
-          url: 'https://www.gjensidige.no'
+          url: 'https://www.gjensidige.no',
+          offerUrl: 'https://www.gjensidige.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'tryg',
@@ -335,7 +370,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Familieforsikring', 'Bilforsikring', 'Reiseforsikring', 'Uføreforsikring'],
             en: ['Family insurance', 'Car insurance', 'Travel insurance', 'Disability insurance']
           },
-          url: 'https://tryg.no'
+          url: 'https://tryg.no',
+          offerUrl: 'https://tryg.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'fremtind',
@@ -352,7 +389,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Innboforsikring', 'Bilforsikring', 'Reiseforsikring', 'Digital skademelding'],
             en: ['Home contents insurance', 'Car insurance', 'Travel insurance', 'Digital claims reporting']
           },
-          url: 'https://www.fremtind.no'
+          url: 'https://www.fremtind.no',
+          offerUrl: 'https://www.fremtind.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'frende',
@@ -369,7 +408,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Husforsikring', 'Bilforsikring', 'Barneforsikring', 'Enkel skademelding'],
             en: ['Home insurance', 'Car insurance', 'Child insurance', 'Easy claims reporting']
           },
-          url: 'https://www.frende.no'
+          url: 'https://www.frende.no',
+          offerUrl: 'https://www.frende.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'eika',
@@ -386,7 +427,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Innboforsikring', 'Husforsikring', 'Reiseforsikring', 'Lokalbank-fordeler'],
             en: ['Home contents insurance', 'Home insurance', 'Travel insurance', 'Local bank benefits']
           },
-          url: 'https://www.eika.no'
+          url: 'https://www.eika.no',
+          offerUrl: 'https://www.eika.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'storebrand',
@@ -403,7 +446,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Bilforsikring', 'Husforsikring', 'Innboforsikring', 'Bærekraftige investeringer'],
             en: ['Car insurance', 'Home insurance', 'Home contents insurance', 'Sustainable investments']
           },
-          url: 'https://www.storebrand.no'
+          url: 'https://www.storebrand.no',
+          offerUrl: 'https://www.storebrand.no/forsikring',
+          lastUpdated: new Date()
         },
         {
           id: 'klp',
@@ -420,7 +465,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Innboforsikring', 'Bilforsikring', 'Medlemsfordeler', 'Livsforsikring'],
             en: ['Home contents insurance', 'Car insurance', 'Member benefits', 'Life insurance']
           },
-          url: 'https://www.klp.no'
+          url: 'https://www.klp.no',
+          offerUrl: 'https://www.klp.no/forsikring',
+          lastUpdated: new Date()
         }
       ];
       
@@ -441,7 +488,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Boliglån', 'Personlig rådgivning', 'Mobilbank', 'Lave gebyrer'],
             en: ['Mortgage', 'Personal advisory', 'Mobile banking', 'Low fees']
           },
-          url: 'https://www.dnb.no'
+          url: 'https://www.dnb.no',
+          offerUrl: 'https://www.dnb.no/laan',
+          lastUpdated: new Date()
         },
         {
           id: 'nordea',
@@ -458,7 +507,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Boliglån', 'Grønn billån', 'Nordea Mobilbank', 'Rådgivning'],
             en: ['Mortgage', 'Green car loan', 'Nordea Mobile Bank', 'Advisory']
           },
-          url: 'https://www.nordea.no'
+          url: 'https://www.nordea.no',
+          offerUrl: 'https://www.nordea.no/laan',
+          lastUpdated: new Date()
         },
         {
           id: 'sbanken',
@@ -475,7 +526,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Boliglån', 'Ingen etableringskostnad', 'Prisgaranti', 'Kundeservice'],
             en: ['Mortgage', 'No establishment fee', 'Price guarantee', 'Customer service']
           },
-          url: 'https://www.sbanken.no'
+          url: 'https://www.sbanken.no',
+          offerUrl: 'https://www.sbanken.no/laan',
+          lastUpdated: new Date()
         },
         {
           id: 'komplett-bank',
@@ -492,7 +545,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Forbrukslån', 'Raskt svar', 'Ingen skjulte gebyrer', 'Fleksibel nedbetaling'],
             en: ['Consumer loan', 'Fast response', 'No hidden fees', 'Flexible repayment']
           },
-          url: 'https://www.komplettbank.no'
+          url: 'https://www.komplettbank.no',
+          offerUrl: 'https://www.komplettbank.no/forbrukslan',
+          lastUpdated: new Date()
         },
         {
           id: 'bank-norwegian',
@@ -509,7 +564,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Forbrukslån', 'Enkelt på nett', 'Rask behandlingstid', 'Ingen sikkerhet kreves'],
             en: ['Consumer loan', 'Easy online', 'Fast processing time', 'No security required']
           },
-          url: 'https://www.banknorwegian.no'
+          url: 'https://www.banknorwegian.no',
+          offerUrl: 'https://www.banknorwegian.no/lan',
+          lastUpdated: new Date()
         },
         {
           id: 'bnbank',
@@ -526,7 +583,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Boliglån', 'Lavere rente ved miljøtiltak', 'Enkel digital søknad', 'Konkurransedyktige vilkår'],
             en: ['Mortgage', 'Lower rate for environmental measures', 'Simple digital application', 'Competitive terms']
           },
-          url: 'https://www.bnbank.no'
+          url: 'https://www.bnbank.no',
+          offerUrl: 'https://www.bnbank.no/boliglaan',
+          lastUpdated: new Date()
         },
         {
           id: 'santander',
@@ -543,7 +602,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Billån', 'Forbrukslån', 'Kredittkort', 'Fleksibel nedbetaling'],
             en: ['Car loan', 'Consumer loan', 'Credit card', 'Flexible repayment']
           },
-          url: 'https://www.santander.no'
+          url: 'https://www.santander.no',
+          offerUrl: 'https://www.santander.no/lan',
+          lastUpdated: new Date()
         },
         {
           id: 'instabank',
@@ -560,7 +621,9 @@ export const getMockProviders = (categoryId: string): Provider[] => {
             nb: ['Forbrukslån', 'Refinansiering', 'Rask utbetaling', 'Ingen etableringsgebyr'],
             en: ['Consumer loan', 'Refinancing', 'Quick payout', 'No establishment fee']
           },
-          url: 'https://www.instabank.no'
+          url: 'https://www.instabank.no',
+          offerUrl: 'https://www.instabank.no/forbrukslan',
+          lastUpdated: new Date()
         }
       ];
       

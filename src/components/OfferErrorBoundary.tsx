@@ -1,6 +1,6 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { ExclamationTriangleIcon, ClockIcon } from 'lucide-react';
+import { AlertTriangle, ClockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -58,7 +58,7 @@ export class OfferErrorBoundary extends Component<Props, State> {
       return (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
           <div className="flex items-center justify-center mb-2">
-            <ExclamationTriangleIcon className="h-5 w-5 text-red-500 mr-2" />
+            <AlertTriangle className="h-5 w-5 text-red-500 mr-2" />
             <ClockIcon className="h-5 w-5 text-orange-500" />
           </div>
           <p className="text-red-700 text-sm mb-2">
