@@ -8,7 +8,6 @@ import { LanguageProvider } from "@/lib/languageContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Compare from "./pages/Compare";
-import EnhancedCompare from "./pages/EnhancedCompare";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -33,7 +32,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/compare/:categoryId" element={<Compare />} />
-              <Route path="/enhanced/:categoryId" element={<EnhancedCompare />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
