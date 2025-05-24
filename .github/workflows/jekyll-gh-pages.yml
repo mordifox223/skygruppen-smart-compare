@@ -43,8 +43,11 @@ jobs:
       - name: Build Vite site
         run: npm run build
         
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Add .nojekyll
+        run: echo > dist/.nojekyll
+        
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v2
         with:
           path: dist
 
@@ -58,4 +61,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v2
