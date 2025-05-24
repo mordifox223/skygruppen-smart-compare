@@ -9,8 +9,8 @@ import { Shield, Zap, Smartphone, Landmark } from 'lucide-react';
 const iconMap: Record<string, React.ElementType> = {
   shield: Shield,
   zap: Zap,
-  smartphone: Smartphone,
-  landmark: Landmark,
+  phone: Smartphone,
+  bank: Landmark,
 };
 
 interface CategoryCardProps {
@@ -22,19 +22,25 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
   const Icon = iconMap[category.icon] || Shield;
   
   return (
-    <Link to={`/compare/${category.id}`} className="block">
-      <div className="category-card bg-white rounded-lg p-6 h-full flex flex-col">
+    <Link to={`/enhanced/${category.id}`} className="block">
+      <div className="category-card bg-white rounded-lg p-6 h-full flex flex-col border border-slate-200 hover:border-sky-300 hover:shadow-lg transition-all">
         <div className="mb-4 flex items-center justify-between">
           <div className="p-3 bg-sky-50 rounded-full">
             <Icon size={24} className="text-sky-600" />
           </div>
-          <span className="text-sm text-gray-500">{category.providers} {language === 'nb' ? 'leverandører' : 'providers'}</span>
+          <span className="text-sm text-slate-500 font-montserrat">
+            {category.providers} {language === 'nb' ? 'leverandører' : 'providers'}
+          </span>
         </div>
         
-        <h3 className="text-xl font-semibold mb-2">{category.name[language]}</h3>
-        <p className="text-gray-600 text-sm mb-4 flex-grow">{category.description[language]}</p>
+        <h3 className="text-xl font-montserrat font-semibold mb-2 text-slate-900">
+          {category.name[language]}
+        </h3>
+        <p className="text-slate-600 text-sm mb-4 flex-grow leading-relaxed">
+          {category.description[language]}
+        </p>
         
-        <div className="flex items-center text-sky-600 font-medium">
+        <div className="flex items-center text-sky-600 font-montserrat font-medium">
           <span>{language === 'nb' ? 'Sammenlign' : 'Compare'}</span>
           <ChevronRight size={16} className="ml-1" />
         </div>
