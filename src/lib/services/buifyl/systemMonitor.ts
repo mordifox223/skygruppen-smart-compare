@@ -64,7 +64,7 @@ export class BuifylSystemMonitor {
     }
   }
 
-  private calculateSystemHealth(dataSources: any[], recentJobs: any[]): string {
+  private calculateSystemHealth(dataSources: any[], recentJobs: any[]): 'good' | 'degraded' | 'poor' | 'unknown' {
     const recentFailures = recentJobs.filter(job => job.status === 'failed').length;
     const totalSources = dataSources.length;
     const activeSources = dataSources.filter(source => source.is_active).length;
