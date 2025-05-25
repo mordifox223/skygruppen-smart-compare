@@ -1,1 +1,20 @@
+
 project_id = "odemfyuwaasfhtpnkhei"
+
+[functions.scrape-real-providers]
+verify_jwt = false
+
+[functions.fetch-providers]
+verify_jwt = false
+
+[functions.scrape-providers]
+verify_jwt = false
+
+[functions.scrape-live-products]
+verify_jwt = false
+
+[functions.sync-provider-data]
+verify_jwt = false
+
+[functions.validate-urls]
+verify_jwt = false
