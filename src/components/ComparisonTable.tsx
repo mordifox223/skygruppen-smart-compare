@@ -1,10 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Provider, ComparisonFilters } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
 import ProviderCard from '@/components/ProviderCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import DataRefreshButton from '@/components/DataRefreshButton';
 import { Button } from '@/components/ui/button';
 import { 
   Select,
@@ -24,8 +24,9 @@ interface ComparisonTableProps {
   categoryId: string;
 }
 
-const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId }) => {
+const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialProviders, categoryId }) => {
   const { language } = useLanguage();
+  const [providers, setProviders] = useState<Provider[]>(initialProviders);
   const [filters, setFilters] = useState<ComparisonFilters>({
     sortBy: 'price',
     sortDirection: 'asc',
@@ -34,6 +35,15 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
   const [minRating, setMinRating] = useState(0);
   const [visibleProviders, setVisibleProviders] = useState(6);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update providers when initialProviders change
+  useEffect(() => {
+    setProviders(initialProviders);
+  }, [initialProviders]);
+
+  const handleDataRefresh = (updatedProviders: Provider[]) => {
+    setProviders(updatedProviders);
+  };
   
   // Filter and sort providers
   const filteredProviders = providers
@@ -78,7 +88,6 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
   
   const loadMoreProviders = async () => {
     setIsLoading(true);
-    // Simulate loading delay
     await new Promise(resolve => setTimeout(resolve, 500));
     setVisibleProviders(prev => prev + 6);
     setIsLoading(false);
@@ -95,6 +104,11 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers, categoryId
           </h2>
           
           <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
+            <DataRefreshButton 
+              providers={providers} 
+              onDataRefresh={handleDataRefresh}
+            />
+            
             <Button 
               variant="outline"
               size="sm"

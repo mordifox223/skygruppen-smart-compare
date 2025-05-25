@@ -1,75 +1,49 @@
 
-import { z } from 'zod';
-import { ProviderCategory } from './types';
+// Data validation utilities for provider information
+export const validateProviderData = (provider: any): boolean => {
+  const requiredFields = ['name', 'price', 'offerUrl', 'features'];
+  return requiredFields.every(field => provider[field] !== undefined && provider[field] !== null);
+};
 
-// Zod schema for strict provider data validation
-export const ProviderSchema = z.object({
-  name: z.string().min(2),
-  price: z.number().positive(),
-  offerUrl: z.string().url().refine(url => isValidOfferPath(url)),
-  lastUpdated: z.date(),
-  features: z.record(z.string(), z.union([z.string(), z.number()])),
-  logo: z.string().url().optional(),
-  rating: z.number().min(0).max(5).optional()
-});
+export const validatePriceFormat = (price: number, category: string): boolean => {
+  if (typeof price !== 'number' || price <= 0) return false;
+  
+  // Category-specific price validation
+  switch (category) {
+    case 'mobile':
+      return price >= 99 && price <= 999; // Monthly mobile plans
+    case 'electricity':
+      return price >= 0.5 && price <= 2.0; // Per kWh rates
+    case 'insurance':
+      return price >= 500 && price <= 10000; // Annual insurance
+    case 'loan':
+      return price >= 1.0 && price <= 25.0; // Interest rates
+    default:
+      return true;
+  }
+};
 
-// Validate offer URLs for different categories
-export const isValidOfferPath = (url: string): boolean => {
+export const retry = async <T>(
+  fn: () => Promise<T>,
+  retries: number = 3,
+  delay: number = 1000
+): Promise<T> => {
   try {
-    const urlObj = new URL(url);
-    const domain = urlObj.hostname.toLowerCase();
-    
-    // Check for known Norwegian provider domains
-    const validDomains = [
-      'gjensidige.no', 'tryg.no', 'fremtind.no', 'storebrand.no', // insurance
-      'tibber.no', 'fortum.no', 'fjordkraft.no', 'lyse.no', // electricity  
-      'telenor.no', 'telia.no', 'ice.no', 'talkmore.no', // mobile
-      'dnb.no', 'nordea.no', 'sparebank1.no', 'danske.no' // banking
-    ];
-    
-    return validDomains.some(validDomain => domain.includes(validDomain));
+    return await fn();
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return retry(fn, retries - 1, delay * 2);
+    }
+    throw error;
+  }
+};
+
+export const isUrlValid = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
   } catch {
     return false;
   }
-};
-
-// Logo validation with category-specific patterns
-export const isValidLogo = (url: string, category: ProviderCategory, providerName: string): boolean => {
-  if (!url) return false;
-  
-  const validExtensions = /\.(png|svg|webp|ico)(\?.*)?$/i;
-  const isValidUrl = /^https?:\/\//.test(url);
-  
-  if (!isValidUrl || !validExtensions.test(url)) return false;
-  
-  // Category-specific validation patterns
-  const categoryPatterns = {
-    electricity: /tibber|fortum|fjordkraft|lyse|norgesenergi/i,
-    mobile: /telenor|telia|ice|talkmore|chili/i,
-    insurance: /gjensidige|tryg|fremtind|storebrand/i,
-    loan: /dnb|nordea|sparebank|danske|sbanken/i
-  };
-  
-  const pattern = categoryPatterns[category];
-  return !pattern || pattern.test(url) || url.toLowerCase().includes(providerName.toLowerCase());
-};
-
-// Retry utility with exponential backoff and jitter
-export const retry = async <T>(
-  fn: () => Promise<T>, 
-  retries = 3,
-  baseDelay = 1000
-): Promise<T> => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      
-      // Exponential backoff with jitter
-      const delay = Math.min(baseDelay * 2 ** i + Math.random() * 500, 30000);
-      await new Promise(r => setTimeout(r, delay));
-    }
-  }
-  throw new Error('Retry failed');
 };
