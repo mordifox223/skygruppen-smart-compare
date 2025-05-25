@@ -26,6 +26,8 @@ export const useProviderOffers = (category?: string) => {
   return useQuery({
     queryKey: ['provider-offers', category],
     queryFn: async (): Promise<ProviderOffer[]> => {
+      console.log('Fetching provider offers for category:', category);
+      
       let query = supabase
         .from('provider_offers')
         .select('*')
@@ -43,6 +45,8 @@ export const useProviderOffers = (category?: string) => {
         throw error;
       }
       
+      console.log('Raw data from Supabase:', data);
+      
       // Transform the data to match our interface
       return (data || []).map(item => ({
         ...item,
@@ -51,6 +55,7 @@ export const useProviderOffers = (category?: string) => {
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: true, // Ensure the query is enabled
   });
 };
 

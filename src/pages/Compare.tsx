@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '@/lib/languageContext';
@@ -11,19 +12,25 @@ const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
   const { language } = useLanguage();
   
+  console.log('Compare component mounted, categoryId:', categoryId);
+  
   // Try to get real data first, fallback to mock data
   const { data: realProviders, isLoading: realLoading, error: realError } = useProviderOffers(categoryId);
   const mockProviders = getMockProviders(categoryId);
   const categories = getAvailableCategories();
   const category = categories.find(c => c.id === categoryId);
   
-  console.log('Real providers:', realProviders, 'Error:', realError);
+  console.log('Real providers data:', realProviders);
+  console.log('Real providers error:', realError);
+  console.log('Real providers loading:', realLoading);
   
   // Use real data if available, otherwise fallback to mock data
   const providers = React.useMemo(() => {
     if (realProviders && realProviders.length > 0) {
+      console.log('Using real providers data');
       return realProviders.map(convertToLegacyProvider);
     }
+    console.log('Using mock providers data');
     return mockProviders;
   }, [realProviders, mockProviders]);
 
