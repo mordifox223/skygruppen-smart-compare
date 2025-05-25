@@ -4,8 +4,7 @@ import { fetchBuifylProducts, BuifylProduct } from '@/lib/services/buifylService
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart, Database, RefreshCw } from 'lucide-react';
+import { ShoppingCart, Database } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
@@ -32,7 +31,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [products, setProducts] = useState<BuifylProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [scraping, setScraping] = useState(false);
 
   const loadProducts = async () => {
     try {
@@ -48,37 +46,35 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     }
   };
 
-  const triggerScraping = async () => {
+  const initializeData = async () => {
     try {
-      setScraping(true);
-      console.log('🔄 Triggering manual scraping...');
+      console.log('🔄 Initializing provider data...');
       
       const { data, error } = await supabase.functions.invoke('scrape-real-providers', {
         body: { action: 'scrape_all' }
       });
 
       if (error) {
-        console.error('❌ Scraping error:', error);
-        throw error;
+        console.error('❌ Data initialization error:', error);
+      } else {
+        console.log('✅ Data initialization completed:', data);
       }
-
-      console.log('✅ Scraping completed:', data);
       
-      // Reload products after scraping
+      // Load products after initialization
       setTimeout(() => {
         loadProducts();
-      }, 2000);
+      }, 1000);
       
     } catch (err) {
-      console.error('Failed to trigger scraping:', err);
-      setError('Failed to trigger data scraping');
-    } finally {
-      setScraping(false);
+      console.error('Failed to initialize data:', err);
+      // Still try to load products even if initialization fails
+      loadProducts();
     }
   };
 
   useEffect(() => {
-    loadProducts();
+    // Initialize data automatically on first load
+    initializeData();
 
     // Set up real-time updates
     const channel = supabase
@@ -117,28 +113,6 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         <Database size={48} className="mx-auto text-red-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2 text-red-600">Connection Error</h3>
         <p className="text-gray-600 mb-4">{error}</p>
-        <div className="space-x-2">
-          <Button 
-            onClick={loadProducts}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Try Again
-          </Button>
-          <Button 
-            onClick={triggerScraping}
-            disabled={scraping}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-          >
-            {scraping ? (
-              <>
-                <RefreshCw size={16} className="mr-2 animate-spin" />
-                Scraping...
-              </>
-            ) : (
-              'Trigger Scraping'
-            )}
-          </Button>
-        </div>
       </div>
     );
   }
@@ -153,63 +127,15 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         <p className="text-gray-600 mb-4">
           Produkter vil vises automatisk når de er tilgjengelige via Buifyl Shop.
         </p>
-        <div className="space-x-2">
-          <Button 
-            onClick={loadProducts}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Refresh
-          </Button>
-          <Button 
-            onClick={triggerScraping}
-            disabled={scraping}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
-          >
-            {scraping ? (
-              <>
-                <RefreshCw size={16} className="mr-2 animate-spin" />
-                Scraping Data...
-              </>
-            ) : (
-              'Load Provider Data'
-            )}
-          </Button>
-        </div>
-        <p className="text-sm text-gray-500 mt-2">
-          Click "Load Provider Data" to fetch the latest offers from Norwegian providers.
-        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-green-600">
-          <ShoppingCart size={16} />
-          <span>{products.length} produkter fra Buifyl Shop</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button 
-            onClick={triggerScraping}
-            disabled={scraping}
-            size="sm"
-            variant="outline"
-            className="text-xs"
-          >
-            {scraping ? (
-              <>
-                <RefreshCw size={12} className="mr-1 animate-spin" />
-                Updating...
-              </>
-            ) : (
-              'Update Data'
-            )}
-          </Button>
-          <div className="text-xs text-gray-500">
-            Sist oppdatert: {new Date().toLocaleTimeString('nb-NO')}
-          </div>
-        </div>
+      <div className="flex items-center gap-2 text-sm text-green-600">
+        <ShoppingCart size={16} />
+        <span>{products.length} produkter fra Buifyl Shop</span>
       </div>
       
       <div className="product-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

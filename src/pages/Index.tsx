@@ -1,7 +1,8 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/languageContext';
 import { getAvailableCategories } from '@/lib/i18n';
+import { getProviderCounts, ProviderCounts } from '@/lib/services/providerCountService';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CategoryCard from '@/components/CategoryCard';
@@ -9,7 +10,23 @@ import CategoryCard from '@/components/CategoryCard';
 const Index = () => {
   const { language } = useLanguage();
   const categories = getAvailableCategories();
+  const [providerCounts, setProviderCounts] = useState<ProviderCounts>({
+    mobile: 0,
+    electricity: 0,
+    insurance: 0,
+    loan: 0,
+    total: 0
+  });
   
+  useEffect(() => {
+    const loadProviderCounts = async () => {
+      const counts = await getProviderCounts();
+      setProviderCounts(counts);
+    };
+    
+    loadProviderCounts();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -26,8 +43,8 @@ const Index = () => {
               </h1>
               <p className="text-xl text-gray-300 mb-8">
                 {language === 'nb' 
-                  ? 'Finn de beste tilbudene fra ledende leverandører i Norge.' 
-                  : 'Find the best offers from leading providers in Norway.'}
+                  ? `Finn de beste tilbudene fra ${providerCounts.total} ledende leverandører i Norge.`
+                  : `Find the best offers from ${providerCounts.total} leading providers in Norway.`}
               </p>
             </div>
           </div>
@@ -41,9 +58,19 @@ const Index = () => {
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {categories.map((category) => (
-                <CategoryCard key={category.id} category={category} />
-              ))}
+              {categories.map((category) => {
+                const categoryCount = providerCounts[category.id as keyof Omit<ProviderCounts, 'total'>] || 0;
+                return (
+                  <div key={category.id} className="relative">
+                    <CategoryCard category={category} />
+                    {categoryCount > 0 && (
+                      <div className="absolute top-2 right-2 bg-sky-600 text-white text-xs px-2 py-1 rounded-full">
+                        {categoryCount} {language === 'nb' ? 'tilbydere' : 'providers'}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -101,6 +128,22 @@ const Index = () => {
                   </p>
                 </div>
               </div>
+              
+              {providerCounts.total > 0 && (
+                <div className="mt-8 p-4 bg-sky-50 rounded-lg">
+                  <p className="text-sky-800 font-medium">
+                    {language === 'nb' 
+                      ? `Sammenlign tilbud fra ${providerCounts.total} norske leverandører` 
+                      : `Compare offers from ${providerCounts.total} Norwegian providers`}
+                  </p>
+                  <div className="flex justify-center gap-4 mt-2 text-sm text-sky-600">
+                    <span>{providerCounts.mobile} mobil</span>
+                    <span>{providerCounts.electricity} strøm</span>
+                    <span>{providerCounts.insurance} forsikring</span>
+                    <span>{providerCounts.loan} lån</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>

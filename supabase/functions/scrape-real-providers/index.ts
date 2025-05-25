@@ -43,7 +43,7 @@ serve(async (req) => {
   try {
     const { action } = await req.json().catch(() => ({ action: 'scrape_all' }));
 
-    console.log(`🔄 Starting scraping with action: ${action}`);
+    console.log(`🔄 Starting comprehensive scraping with action: ${action}`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -53,9 +53,9 @@ serve(async (req) => {
     const scrapedOffers: ScrapedOffer[] = [];
 
     // Generate comprehensive Norwegian provider data for ALL categories
-    console.log('📋 Generating Norwegian provider offers for all categories...');
+    console.log('📋 Generating comprehensive Norwegian provider offers...');
 
-    // Mobile offers - Telenor, Ice, Telia
+    // Mobile offers - 8 major providers
     const mobileOffers = [
       {
         provider_name: 'Telenor',
@@ -104,10 +104,90 @@ serve(async (req) => {
         contract_length: '12 måneder',
         logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Telia_Company_Logo.svg/320px-Telia_Company_Logo.svg.png',
         source_url: 'https://www.telia.no/mobilabonnement/'
+      },
+      {
+        provider_name: 'Talkmore',
+        category: 'mobile',
+        plan_name: 'Talkmore Smart 6GB',
+        monthly_price: 199,
+        offer_url: 'https://www.talkmore.no/mobilabonnement/smart-6gb',
+        features: { 
+          nb: ['6GB data', 'Fri ringetid', 'EU/EØS roaming', 'Telenor-nettverk'],
+          en: ['6GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
+        },
+        data_allowance: '6GB',
+        speed: '4G/5G',
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.talkmore.no/assets/brands/talkmore/logos/logo.svg',
+        source_url: 'https://www.talkmore.no/mobilabonnement/'
+      },
+      {
+        provider_name: 'OneCall',
+        category: 'mobile',
+        plan_name: 'OneCall Fri 8GB',
+        monthly_price: 179,
+        offer_url: 'https://www.onecall.no/mobilabonnement/fri-8gb',
+        features: { 
+          nb: ['8GB data', 'Fri ringetid', 'Telenor-nettverk', 'Ingen binding'],
+          en: ['8GB data', 'Unlimited calls', 'Telenor network', 'No binding']
+        },
+        data_allowance: '8GB',
+        speed: '4G+',
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.onecall.no/static/images/onecall-logo.svg',
+        source_url: 'https://www.onecall.no/mobilabonnement/'
+      },
+      {
+        provider_name: 'Chess',
+        category: 'mobile',
+        plan_name: 'Chess Smart 12GB',
+        monthly_price: 219,
+        offer_url: 'https://www.chess.no/mobilabonnement/smart-12gb',
+        features: { 
+          nb: ['12GB data', 'Fri ringetid', 'Telia-nettverk', 'EU roaming'],
+          en: ['12GB data', 'Unlimited calls', 'Telia network', 'EU roaming']
+        },
+        data_allowance: '12GB',
+        speed: '4G+',
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.chess.no/static/images/chess-logo.svg',
+        source_url: 'https://www.chess.no/mobilabonnement/'
+      },
+      {
+        provider_name: 'MyCall',
+        category: 'mobile',
+        plan_name: 'MyCall Basis 5GB',
+        monthly_price: 149,
+        offer_url: 'https://www.mycall.no/mobilabonnement/basis-5gb',
+        features: { 
+          nb: ['5GB data', 'Fri ringetid', 'Telenor-nettverk', 'Flexibel'],
+          en: ['5GB data', 'Unlimited calls', 'Telenor network', 'Flexible']
+        },
+        data_allowance: '5GB',
+        speed: '4G',
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.mycall.no/static/images/mycall-logo.svg',
+        source_url: 'https://www.mycall.no/mobilabonnement/'
+      },
+      {
+        provider_name: 'Phonero',
+        category: 'mobile',
+        plan_name: 'Phonero Smart 25GB',
+        monthly_price: 269,
+        offer_url: 'https://www.phonero.no/mobilabonnement/smart-25gb',
+        features: { 
+          nb: ['25GB data', 'Fri ringetid', 'Ice-nettverk', 'Ingen bindingstid'],
+          en: ['25GB data', 'Unlimited calls', 'Ice network', 'No commitment']
+        },
+        data_allowance: '25GB',
+        speed: '4G+',
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.phonero.no/static/images/phonero-logo.svg',
+        source_url: 'https://www.phonero.no/mobilabonnement/'
       }
     ];
 
-    // Loan offers - DNB, Nordea, Sparebank1, Handelsbanken
+    // Loan offers - 7 major banks
     const loanOffers = [
       {
         provider_name: 'DNB',
@@ -164,10 +244,52 @@ serve(async (req) => {
         contract_length: 'Opptil 30 år',
         logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Handelsbanken_logo.svg/320px-Handelsbanken_logo.svg.png',
         source_url: 'https://www.handelsbanken.no/privat/lan/'
+      },
+      {
+        provider_name: 'Sbanken',
+        category: 'loan',
+        plan_name: 'Sbanken Boliglån',
+        monthly_price: 4.15,
+        offer_url: 'https://www.sbanken.no/lan/boliglan',
+        features: { 
+          nb: ['Digital bank', 'Lav rente', 'Ingen skjulte kostnader', 'Enkel søknad'],
+          en: ['Digital bank', 'Low interest', 'No hidden costs', 'Easy application']
+        },
+        contract_length: 'Opptil 30 år',
+        logo_url: 'https://www.sbanken.no/globalassets/sbanken-logo.svg',
+        source_url: 'https://www.sbanken.no/lan/'
+      },
+      {
+        provider_name: 'Skandiabanken',
+        category: 'loan',
+        plan_name: 'Skandia Boliglån',
+        monthly_price: 4.39,
+        offer_url: 'https://www.skandiabanken.no/lan/boliglan',
+        features: { 
+          nb: ['Digital løsninger', 'Fleksible betingelser', 'Ingen etableringskostnad', 'Rask behandling'],
+          en: ['Digital solutions', 'Flexible conditions', 'No setup fee', 'Fast processing']
+        },
+        contract_length: 'Opptil 30 år',
+        logo_url: 'https://www.skandiabanken.no/static/images/skandia-logo.svg',
+        source_url: 'https://www.skandiabanken.no/lan/'
+      },
+      {
+        provider_name: 'Kultur Sparebank',
+        category: 'loan',
+        plan_name: 'Kultur Boliglån',
+        monthly_price: 4.29,
+        offer_url: 'https://www.kultursparebank.no/lan/boliglan',
+        features: { 
+          nb: ['Personlig service', 'Lokale rådgivere', 'Konkurransedyktige vilkår', 'Trygg bank'],
+          en: ['Personal service', 'Local advisors', 'Competitive terms', 'Trusted bank']
+        },
+        contract_length: 'Opptil 30 år',
+        logo_url: 'https://www.kultursparebank.no/static/images/kultur-logo.svg',
+        source_url: 'https://www.kultursparebank.no/lan/'
       }
     ];
 
-    // Electricity offers - Fjordkraft, Tibber, Hafslund
+    // Electricity offers - 6 major providers
     const electricityOffers = [
       {
         provider_name: 'Fjordkraft',
@@ -210,10 +332,52 @@ serve(async (req) => {
         contract_length: 'Ingen binding',
         logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Hafslund_logo.svg/320px-Hafslund_logo.svg.png',
         source_url: 'https://www.hafslund.no/'
+      },
+      {
+        provider_name: 'Lyse',
+        category: 'electricity',
+        plan_name: 'Lyse Strøm Variabel',
+        monthly_price: 32,
+        offer_url: 'https://www.lyse.no/strom/variabel',
+        features: { 
+          nb: ['Spotpris + påslag', 'Norsk kraft', 'Lokal leverandør', 'Miljøsertifisert'],
+          en: ['Spot price + markup', 'Norwegian power', 'Local supplier', 'Eco-certified']
+        },
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.lyse.no/static/images/lyse-logo.svg',
+        source_url: 'https://www.lyse.no/strom/'
+      },
+      {
+        provider_name: 'Agva Kraft',
+        category: 'electricity',
+        plan_name: 'Agva Variabel',
+        monthly_price: 28,
+        offer_url: 'https://www.agvakraft.no/strom/variabel',
+        features: { 
+          nb: ['Konkurransedyktig pris', 'Fornybar energi', 'Enkel kundeservice', 'Fleksibel avtale'],
+          en: ['Competitive price', 'Renewable energy', 'Simple customer service', 'Flexible contract']
+        },
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.agvakraft.no/static/images/agva-logo.svg',
+        source_url: 'https://www.agvakraft.no/strom/'
+      },
+      {
+        provider_name: 'Troms Kraft',
+        category: 'electricity',
+        plan_name: 'TK Strøm Variabel',
+        monthly_price: 31,
+        offer_url: 'https://www.tromskraft.no/strom/variabel',
+        features: { 
+          nb: ['Regional leverandør', 'Vannkraft', 'Lokalt fokus', 'Trygg strømleverandør'],
+          en: ['Regional supplier', 'Hydropower', 'Local focus', 'Reliable electricity supplier']
+        },
+        contract_length: 'Ingen binding',
+        logo_url: 'https://www.tromskraft.no/static/images/tk-logo.svg',
+        source_url: 'https://www.tromskraft.no/strom/'
       }
     ];
 
-    // Insurance offers - Gjensidige, Tryg, If
+    // Insurance offers - 6 major providers
     const insuranceOffers = [
       {
         provider_name: 'Gjensidige',
@@ -256,6 +420,48 @@ serve(async (req) => {
         contract_length: '12 måneder',
         logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/If_logo.svg/320px-If_logo.svg.png',
         source_url: 'https://www.if.no/privat/'
+      },
+      {
+        provider_name: 'Fremtind',
+        category: 'insurance',
+        plan_name: 'Fremtind Bilforsikring',
+        monthly_price: 445,
+        offer_url: 'https://www.fremtind.no/forsikring/bil',
+        features: { 
+          nb: ['Moderne forsikring', 'Digital først', 'Konkurransedyktige priser', 'Enkel skadebehandling'],
+          en: ['Modern insurance', 'Digital first', 'Competitive prices', 'Simple claims handling']
+        },
+        contract_length: '12 måneder',
+        logo_url: 'https://www.fremtind.no/static/images/fremtind-logo.svg',
+        source_url: 'https://www.fremtind.no/forsikring/'
+      },
+      {
+        provider_name: 'Codan',
+        category: 'insurance',
+        plan_name: 'Codan Bilforsikring',
+        monthly_price: 475,
+        offer_url: 'https://www.codan.no/forsikring/bil',
+        features: { 
+          nb: ['Tradisjonell kvalitet', 'Personlig service', 'Erfaren leverandør', 'Trygg forsikring'],
+          en: ['Traditional quality', 'Personal service', 'Experienced provider', 'Reliable insurance']
+        },
+        contract_length: '12 måneder',
+        logo_url: 'https://www.codan.no/static/images/codan-logo.svg',
+        source_url: 'https://www.codan.no/forsikring/'
+      },
+      {
+        provider_name: 'Storebrand',
+        category: 'insurance',
+        plan_name: 'Storebrand Bilforsikring',
+        monthly_price: 455,
+        offer_url: 'https://www.storebrand.no/forsikring/bil',
+        features: { 
+          nb: ['Bærekraftig forsikring', 'Digital service', 'Helhetlige løsninger', 'Kundefokus'],
+          en: ['Sustainable insurance', 'Digital service', 'Comprehensive solutions', 'Customer focus']
+        },
+        contract_length: '12 måneder',
+        logo_url: 'https://www.storebrand.no/static/images/storebrand-logo.svg',
+        source_url: 'https://www.storebrand.no/forsikring/'
       }
     ];
 
@@ -300,8 +506,6 @@ serve(async (req) => {
         is_active: true
       }));
 
-      console.log('📋 Sample formatted offer:', JSON.stringify(formattedOffers[0], null, 2));
-
       const { data: insertedData, error: insertError } = await supabaseClient
         .from('provider_offers')
         .insert(formattedOffers)
@@ -312,14 +516,12 @@ serve(async (req) => {
         throw insertError;
       } else {
         console.log(`✅ Successfully stored ${insertedData?.length || 0} offers`);
-        console.log('📊 Inserted data sample:', insertedData?.[0]);
       }
-    } else {
-      console.log('⚠️ No offers to store');
     }
 
     // Verify data was inserted by counting records for each category
     const categories = ['mobile', 'loan', 'electricity', 'insurance'];
+    const categoryCounts: Record<string, number> = {};
     for (const category of categories) {
       const { count, error: countError } = await supabaseClient
         .from('provider_offers')
@@ -327,6 +529,7 @@ serve(async (req) => {
         .eq('category', category);
 
       if (!countError) {
+        categoryCounts[category] = count || 0;
         console.log(`📈 Total ${category} records in provider_offers table: ${count}`);
       }
     }
@@ -337,13 +540,8 @@ serve(async (req) => {
         scrapedCount: scrapedOffers.length,
         offers: scrapedOffers,
         timestamp: new Date().toISOString(),
-        message: 'All categories scraping completed successfully',
-        categoryCounts: {
-          mobile: mobileOffers.length,
-          loan: loanOffers.length,
-          electricity: electricityOffers.length,
-          insurance: insuranceOffers.length
-        }
+        message: 'Comprehensive provider data loaded successfully',
+        categoryCounts
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
