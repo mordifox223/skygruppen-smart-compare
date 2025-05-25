@@ -1,19 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
-import { fetchBuifylProducts, BuifylProduct } from '@/lib/services/buifylService';
+import { enhancedBuifylService, EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShoppingCart, Database, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ShoppingCart, Database, AlertTriangle, CheckCircle, RefreshCw, Clock } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
-}
-
-interface QualityStats {
-  total: number;
-  quality: number;
-  filtered: number;
 }
 
 const LoadingSkeleton = () => (
@@ -34,67 +29,58 @@ const LoadingSkeleton = () => (
 );
 
 const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
-  const [products, setProducts] = useState<BuifylProduct[]>([]);
+  const [products, setProducts] = useState<EnhancedBuifylProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [qualityStats, setQualityStats] = useState<QualityStats>({ total: 0, quality: 0, filtered: 0 });
+  const [syncing, setSyncing] = useState(false);
+  const [lastSync, setLastSync] = useState<string | null>(null);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`🔄 Loading products for ${category} with quality validation...`);
+      console.log(`🔄 Laster kvalitetssikrede produkter for ${category}...`);
       
-      const data = await fetchBuifylProducts(category);
-      setProducts(data);
-      
-      // Calculate quality stats from console logs or validation results
-      const total = data.length;
-      const quality = data.filter(p => p.validation?.confidence && p.validation.confidence >= 90).length;
-      const filtered = 0; // This would come from the validation service
-      
-      setQualityStats({ total, quality, filtered });
+      const validatedProducts = await enhancedBuifylService.getValidatedProducts(category);
+      setProducts(validatedProducts);
+      setLastSync(new Date().toISOString());
       
     } catch (err) {
-      console.error('Failed to load products:', err);
-      setError('Failed to load products');
+      console.error('Feil ved lasting av produkter:', err);
+      setError('Feil ved lasting av produkter');
     } finally {
       setLoading(false);
     }
   };
 
-  const initializeData = async () => {
+  const handleManualSync = async () => {
     try {
-      console.log('🔄 Initializing provider data automatically...');
+      setSyncing(true);
+      console.log('🔄 Starter manuell synkronisering...');
       
-      const { data, error } = await supabase.functions.invoke('scrape-real-providers', {
-        body: { action: 'scrape_all' }
-      });
-
-      if (error) {
-        console.error('❌ Data initialization error:', error);
-      } else {
-        console.log('✅ Data initialization completed:', data);
-      }
+      await enhancedBuifylService.triggerDataSync();
       
-      // Load products after initialization
+      // Last produkter på nytt etter synkronisering
       setTimeout(() => {
         loadProducts();
-      }, 1000);
+      }, 2000);
       
-    } catch (err) {
-      console.error('Failed to initialize data:', err);
-      // Still try to load products even if initialization fails
-      loadProducts();
+    } catch (error) {
+      console.error('Feil ved manuell synkronisering:', error);
+      setError('Feil ved synkronisering av data');
+    } finally {
+      setSyncing(false);
     }
   };
 
   useEffect(() => {
-    // Initialize data automatically on first load
-    initializeData();
+    loadProducts();
 
-    // Set up real-time updates
+    // Start automatisk synkronisering
+    enhancedBuifylService.startAutoSync();
+
+    // Sett opp real-time updates
     const channel = supabase
       .channel('realtime-products')
       .on('postgres_changes', {
@@ -103,7 +89,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         table: 'provider_offers',
         filter: `category=eq.${category}`
       }, (payload) => {
-        console.log('Real-time update received:', payload);
+        console.log('Real-time oppdatering mottatt:', payload);
         loadProducts();
       })
       .subscribe();
@@ -118,7 +104,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <ShoppingCart size={16} />
-          <span>Laster og validerer produkter...</span>
+          <span>Validerer og laster produkter...</span>
         </div>
         <LoadingSkeleton />
       </div>
@@ -129,8 +115,12 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     return (
       <div className="text-center py-12">
         <Database size={48} className="mx-auto text-red-400 mb-4" />
-        <h3 className="text-xl font-semibold mb-2 text-red-600">Tilkoblingsfeil</h3>
+        <h3 className="text-xl font-semibold mb-2 text-red-600">Datafeil</h3>
         <p className="text-gray-600 mb-4">{error}</p>
+        <Button onClick={loadProducts} variant="outline">
+          <RefreshCw size={16} className="mr-2" />
+          Prøv igjen
+        </Button>
       </div>
     );
   }
@@ -143,22 +133,49 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
           Ingen kvalitetssikrede tilbud tilgjengelig
         </h3>
         <p className="text-gray-600 mb-4">
-          Vi viser kun produkter som har bestått våre kvalitetskontroller.
+          Alle produkter gjennomgår kvalitetskontroll før visning.
         </p>
+        <Button onClick={handleManualSync} disabled={syncing}>
+          <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Synkroniserer...' : 'Synkroniser data'}
+        </Button>
       </div>
     );
   }
 
+  // Beregn kvalitetsstatistikk
+  const avgQuality = products.reduce((sum, p) => sum + p.qualityScore, 0) / products.length;
+  const liveDataCount = products.filter(p => p.isLiveData).length;
+  const verifiedCount = products.filter(p => p.validationStatus === 'verified').length;
+
   return (
     <div className="space-y-4">
-      {/* Data quality indicator */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <div className="flex items-center gap-2 text-sm">
-          <CheckCircle size={16} className="text-green-600" />
-          <span className="font-medium">Kun kvalitetssikrede produkter vises</span>
+      {/* Kvalitetsindikatorer */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm">
+            <CheckCircle size={16} className="text-green-600" />
+            <span className="font-medium">Kvalitetssikrede produkter</span>
+          </div>
+          <Button 
+            onClick={handleManualSync} 
+            disabled={syncing}
+            size="sm"
+            variant="outline"
+          >
+            <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Synker...' : 'Sync'}
+          </Button>
         </div>
-        <div className="text-xs text-gray-600 mt-1">
-          Viser {products.length} validerte produkter • Alle data er kvalitetskontrollert
+        <div className="text-xs text-gray-600 mt-1 space-y-1">
+          <div>📊 {products.length} produkter vises • Kvalitet: {avgQuality.toFixed(1)}%</div>
+          <div>⚡ {liveDataCount} med live data • ✅ {verifiedCount} fullt verifisert</div>
+          {lastSync && (
+            <div className="flex items-center">
+              <Clock size={12} className="mr-1" />
+              Sist kontrollert: {new Date(lastSync).toLocaleTimeString('nb-NO')}
+            </div>
+          )}
         </div>
       </div>
       

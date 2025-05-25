@@ -1,73 +1,65 @@
 
 import React from 'react';
-import { BuifylProduct, logAffiliateClick } from '@/lib/services/buifylService';
+import { EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
+import { logAffiliateClick } from '@/lib/services/buifylService';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { ExternalLink, AlertTriangle, CheckCircle, Clock, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
-  product: BuifylProduct;
+  product: EnhancedBuifylProduct;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const handleProductClick = async () => {
     try {
       await logAffiliateClick(product.id, product.provider_name, product.category, product.offer_url);
-      console.log(`🔗 Opening ${product.provider_name} offer:`, product.offer_url);
+      console.log(`🔗 Åpner kvalitetssikret tilbud fra ${product.provider_name}:`, product.offer_url);
       window.open(product.offer_url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Error handling product click:', error);
+      console.error('Feil ved håndtering av produktklikk:', error);
       window.open(product.offer_url, '_blank', 'noopener,noreferrer');
     }
   };
 
-  // Show data quality indicator if validation exists
-  const showQualityIndicator = product.validation && (
-    product.validation.confidence < 90 || product.validation.warnings.length > 0
-  );
-
-  const getQualityColor = (confidence: number) => {
-    if (confidence >= 90) return 'text-green-600 bg-green-50 border-green-200';
-    if (confidence >= 80) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-orange-600 bg-orange-50 border-orange-200';
+  const getQualityColor = (score: number) => {
+    if (score >= 90) return 'text-green-600 bg-green-50 border-green-200';
+    if (score >= 80) return 'text-blue-600 bg-blue-50 border-blue-200';
+    return 'text-yellow-600 bg-yellow-50 border-yellow-200';
   };
 
-  const getDataAge = (scrapedAt: string) => {
-    const scrapedDate = new Date(scrapedAt);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - scrapedDate.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+  const getValidationIcon = (status: string) => {
+    switch (status) {
+      case 'verified':
+        return <CheckCircle size={12} className="text-green-600" />;
+      case 'warning':
+        return <AlertTriangle size={12} className="text-yellow-600" />;
+      default:
+        return <Shield size={12} className="text-gray-600" />;
+    }
   };
-
-  const dataAge = getDataAge(product.scraped_at);
 
   return (
     <article 
       className="product-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow"
       aria-labelledby={`product-${product.id}-title`}
     >
-      {/* Data quality indicator */}
-      {showQualityIndicator && product.validation && (
-        <div className={cn(
-          "mb-3 p-2 rounded text-xs border",
-          getQualityColor(product.validation.confidence)
-        )}>
-          <div className="flex items-center">
-            {product.validation.confidence >= 80 ? (
-              <CheckCircle size={12} className="mr-1" />
-            ) : (
-              <AlertTriangle size={12} className="mr-1" />
-            )}
-            <span>Datakvalitet: {product.validation.confidence}%</span>
-          </div>
-          {product.validation.warnings.length > 0 && (
-            <div className="mt-1 text-xs opacity-75">
-              {product.validation.warnings[0]}
-            </div>
-          )}
+      {/* Kvalitetsindikator */}
+      <div className={cn(
+        "mb-3 p-2 rounded text-xs border flex items-center justify-between",
+        getQualityColor(product.qualityScore)
+      )}>
+        <div className="flex items-center">
+          {getValidationIcon(product.validationStatus)}
+          <span className="ml-1 font-medium">Kvalitet: {product.qualityScore}%</span>
         </div>
-      )}
+        {product.isLiveData && (
+          <div className="flex items-center text-green-600">
+            <Clock size={10} className="mr-1" />
+            <span>Live</span>
+          </div>
+        )}
+      </div>
 
       <header className="card-header mb-4">
         <h3 
@@ -126,13 +118,21 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           <ExternalLink size={16} />
         </Button>
 
-        {/* Show data age if older than 3 days */}
-        {dataAge > 3 && (
-          <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
-            <Clock size={12} className="mr-1" />
-            Oppdatert for {dataAge} dager siden
+        {/* Valideringsinfo */}
+        {product.validationErrors.length > 0 && (
+          <div className="mt-2 text-xs text-gray-500">
+            <div className="flex items-center">
+              <AlertTriangle size={10} className="mr-1" />
+              {product.validationErrors[0]}
+            </div>
           </div>
         )}
+
+        {/* Sist validert */}
+        <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
+          <Shield size={12} className="mr-1" />
+          Validert: {new Date(product.lastValidated).toLocaleDateString('nb-NO')}
+        </div>
       </footer>
     </article>
   );
