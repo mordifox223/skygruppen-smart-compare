@@ -8,7 +8,6 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProductGrid from '@/components/ProductGrid';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Database, Zap, ShoppingCart } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -41,35 +40,17 @@ const Compare = () => {
       <Header />
       
       <main className="flex-grow">
-        <div className="bg-slate-900 text-white py-8">
-          <div className="container mx-auto px-4">
+        <div className="bg-white border-b border-gray-200">
+          <div className="container mx-auto px-4 py-8">
             <div>
-              <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
-              <p className="text-gray-300">{category.description[language]}</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-3">{category.name[language]}</h1>
+              <p className="text-lg text-gray-600">{category.description[language]}</p>
             </div>
           </div>
         </div>
         
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-4">
-              <ProductGrid category={categoryId} />
-            </div>
-            
-            <div className="lg:col-span-1">
-              {/* Information box */}
-              <div className="bg-sky-50 p-4 rounded-lg shadow-sm">
-                <h3 className="font-semibold mb-2 text-sky-800">
-                  {language === 'nb' ? 'Visste du?' : 'Did you know?'}
-                </h3>
-                <p className="text-sm text-sky-900">
-                  {language === 'nb' 
-                    ? `Å sammenligne ${category.name[language].toLowerCase()} kan spare deg tusenvis av kroner i året. Våre brukere sparer i gjennomsnitt 2,345 kr per år!` 
-                    : `Comparing ${category.name[language].toLowerCase()} can save you thousands of kroner per year. Our users save 2,345 NOK per year on average!`}
-                </p>
-              </div>
-            </div>
-          </div>
+          <ProductGrid category={categoryId} />
         </div>
       </main>
       

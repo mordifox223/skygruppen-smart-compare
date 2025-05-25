@@ -1,7 +1,25 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 
-export interface EnhancedBuifylProduct extends Provider {
+export interface EnhancedBuifylProduct {
+  id: string;
+  provider_name: string;
+  category: string;
+  plan_name: string;
+  monthly_price: number;
+  offer_url: string;
+  data_allowance?: string;
+  speed?: string;
+  contract_length?: string;
+  features?: Record<string, any>;
+  logo_url?: string;
+  source_url: string;
+  direct_link?: string;
+  is_active: boolean;
+  scraped_at: string;
+  created_at: string;
+  updated_at: string;
+  // Enhanced fields
   qualityScore: number;
   validationStatus: 'verified' | 'warning' | 'unknown';
   validationErrors: string[];
