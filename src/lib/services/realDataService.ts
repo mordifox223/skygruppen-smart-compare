@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface ProviderOffer {
   id: string;
@@ -9,7 +10,7 @@ export interface ProviderOffer {
   plan_name: string;
   monthly_price: number;
   offer_url: string;
-  features: Record<string, any>;
+  features: Json; // Changed from Record<string, any> to Json to match Supabase type
   data_allowance?: string;
   speed?: string;
   contract_length?: string;
@@ -92,7 +93,7 @@ class RealDataService {
     }
   }
 
-  private transformOffersToProviders(offers: ProviderOffer[]): Provider[] {
+  private transformOffersToProviders(offers: any[]): Provider[] {
     return offers.map(offer => ({
       id: offer.id,
       name: offer.provider_name,
@@ -110,7 +111,7 @@ class RealDataService {
     }));
   }
 
-  private transformFeatures(offer: ProviderOffer): Record<string, string[]> {
+  private transformFeatures(offer: any): Record<string, string[]> {
     const features: string[] = [];
     
     if (offer.data_allowance) features.push(offer.data_allowance);
@@ -118,9 +119,10 @@ class RealDataService {
     if (offer.contract_length) features.push(offer.contract_length);
     if (offer.plan_name) features.push(offer.plan_name);
     
-    // Add features from JSONB field
-    if (offer.features && typeof offer.features === 'object') {
-      Object.values(offer.features).forEach(feature => {
+    // Add features from JSONB field - safely handle the Json type
+    if (offer.features && typeof offer.features === 'object' && offer.features !== null) {
+      const featuresObj = offer.features as Record<string, any>;
+      Object.values(featuresObj).forEach(feature => {
         if (typeof feature === 'string') features.push(feature);
       });
     }
