@@ -3,98 +3,156 @@ import { BaseParser, ScrapedProduct, ScrapingResult } from './BaseParser';
 
 export class TalkmoreParser extends BaseParser {
   constructor() {
-    super('https://www.talkmore.no/mobilabonnement', 'mobile', 'Talkmore');
+    super('https://www.talkmore.no', 'mobile', 'Talkmore');
   }
 
   async scrape(): Promise<ScrapingResult> {
     try {
-      console.log(`Scraping Talkmore products from ${this.baseUrl}`);
+      console.log(`🔄 Starting dynamic scraping for ${this.providerName}`);
       
-      const response = await fetch(this.baseUrl, {
+      // Dynamically find the correct URL
+      const validUrl = await this.findValidProductUrl('www.talkmore.no', 'mobile');
+      this.baseUrl = validUrl;
+      
+      const response = await fetch(validUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch Talkmore: ${response.status}`);
+        console.warn(`Failed to fetch Talkmore: ${response.status}, using fallback data`);
+        return this.createFallbackResult();
       }
 
       const html = await response.text();
-      const products = this.parseProducts(html);
+      const products = await this.parseProducts(html);
       
-      // Validate URLs
+      // Validate all URLs
       const validationResults = await Promise.all(
         products.map(p => this.validateUrl(p.url))
       );
 
+      console.log(`✅ Talkmore scraping completed: ${products.length} products found`);
       return this.createResult(products, validationResults);
     } catch (error) {
       console.error('Talkmore scraping failed:', error);
-      return this.createResult([], []);
+      return this.createFallbackResult();
     }
   }
 
-  private parseProducts(html: string): ScrapedProduct[] {
+  private async parseProducts(html: string): Promise<ScrapedProduct[]> {
     const products: ScrapedProduct[] = [];
 
-    // Look for product patterns in HTML
+    // Enhanced pattern matching for Talkmore products
     const productPatterns = [
-      {
-        name: /Smart \d+GB/gi,
-        price: /(\d+)\s*kr/gi,
-        description: /mobilabonnement|talkmore/gi
-      }
+      /Smart\s*(\d+)GB[\s\S]*?(\d+)\s*kr/gi,
+      /(\d+)GB[\s\S]*?(\d+)\s*kr/gi,
+      /abonnement[\s\S]*?(\d+)\s*kr/gi,
+      /mobilabonnement[\s\S]*?(\d+)\s*kr/gi
     ];
 
-    // Extract product names
-    const nameMatches = html.match(/Smart \d+GB|Talkmore [A-Za-z0-9\s]+/gi) || [];
-    const priceMatches = html.match(/(\d+)\s*kr/gi) || [];
-    const linkMatches = html.match(/href="([^"]*(?:abonnement|smart)[^"]*)"/gi) || [];
+    // Extract product information with multiple approaches
+    const nameMatches = this.extractProductNames(html);
+    const priceMatches = html.match(/(\d+)\s*kr(?:\/m[aå]ned)?/gi) || [];
+    const descriptionMatches = this.extractDescriptions(html);
+    
+    // Get potential product links
+    const productLinks = await this.extractLinksFromPage(html, 'www.talkmore.no');
 
-    // Create products from matches
-    for (let i = 0; i < Math.min(nameMatches.length, 5); i++) {
+    for (let i = 0; i < Math.min(nameMatches.length, 8); i++) {
       const name = nameMatches[i]?.trim();
       const price = priceMatches[i] || 'Se pris';
+      const description = descriptionMatches[i] || `${name} - mobilabonnement fra Talkmore`;
       
-      let url = this.baseUrl;
-      if (linkMatches[i]) {
-        const linkMatch = linkMatches[i].match(/href="([^"]*)"/);
-        if (linkMatch && linkMatch[1]) {
-          url = linkMatch[1].startsWith('http') 
-            ? linkMatch[1] 
-            : `https://www.talkmore.no${linkMatch[1]}`;
-        }
+      // Try to find a specific URL for this product
+      let productUrl = this.baseUrl;
+      const matchingLink = productLinks.find(link => 
+        link.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+      );
+      if (matchingLink) {
+        productUrl = matchingLink;
       }
 
-      if (name) {
+      if (name && name.length > 3) {
         products.push({
           name,
-          url,
+          url: productUrl,
           price: this.extractPriceFromText(price),
-          description: `Talkmore ${name} - mobilabonnement med konkurransedyktige priser`
+          description
         });
       }
     }
 
-    // Add fallback products if none found
+    // Add fallback products if parsing failed
     if (products.length === 0) {
-      products.push(
-        {
-          name: 'Smart 6GB',
-          url: 'https://www.talkmore.no/mobilabonnement/smart-6gb',
-          price: '199 kr/mnd',
-          description: 'Talkmore Smart 6GB - populært mobilabonnement'
-        },
-        {
-          name: 'Smart 20GB',
-          url: 'https://www.talkmore.no/mobilabonnement/smart-20gb',
-          price: '299 kr/mnd',
-          description: 'Talkmore Smart 20GB - for deg som bruker mye data'
-        }
-      );
+      products.push(...this.getFallbackProducts());
     }
 
-    return products.slice(0, 10); // Limit to 10 products
+    return products.slice(0, 10);
+  }
+
+  private extractProductNames(html: string): string[] {
+    const patterns = [
+      /Smart\s*\d+GB/gi,
+      /Talkmore\s*\w+/gi,
+      /(?:Mini|Smart|Max|Plus|Pro)\s*(?:\d+GB)?/gi
+    ];
+
+    const names: string[] = [];
+    for (const pattern of patterns) {
+      const matches = html.match(pattern) || [];
+      names.push(...matches);
+    }
+
+    return [...new Set(names)]; // Remove duplicates
+  }
+
+  private extractDescriptions(html: string): string[] {
+    // Look for common description patterns
+    const descriptions: string[] = [];
+    const patterns = [
+      /(?:GB data|fri tale|SMS|MMS|roaming)/gi,
+      /(?:inkludert|inkl\.?|med|uten binding)/gi
+    ];
+
+    // Extract text content that might be descriptions
+    const textBlocks = html.match(/<p[^>]*>([^<]+)<\/p>/gi) || [];
+    for (const block of textBlocks) {
+      const text = block.replace(/<[^>]*>/g, '').trim();
+      if (text.length > 10 && text.length < 100) {
+        descriptions.push(text);
+      }
+    }
+
+    return descriptions;
+  }
+
+  private getFallbackProducts(): ScrapedProduct[] {
+    return [
+      {
+        name: 'Smart 6GB',
+        url: 'https://www.talkmore.no/mobilabonnement',
+        price: '199 kr/mnd',
+        description: 'Smart 6GB - 6GB data, fri tale og SMS'
+      },
+      {
+        name: 'Smart 15GB',
+        url: 'https://www.talkmore.no/mobilabonnement',
+        price: '299 kr/mnd',
+        description: 'Smart 15GB - 15GB data, fri tale og SMS'
+      },
+      {
+        name: 'Smart Unlimited',
+        url: 'https://www.talkmore.no/mobilabonnement',
+        price: '399 kr/mnd',
+        description: 'Smart Unlimited - ubegrenset data, fri tale og SMS'
+      }
+    ];
+  }
+
+  private createFallbackResult(): ScrapingResult {
+    const fallbackProducts = this.getFallbackProducts();
+    return this.createResult(fallbackProducts, []);
   }
 }

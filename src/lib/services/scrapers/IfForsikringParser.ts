@@ -3,87 +3,119 @@ import { BaseParser, ScrapedProduct, ScrapingResult } from './BaseParser';
 
 export class IfForsikringParser extends BaseParser {
   constructor() {
-    super('https://www.if.no/privat/bilforsikring', 'insurance', 'If Forsikring');
+    super('https://www.if.no', 'insurance', 'If Forsikring');
   }
 
   async scrape(): Promise<ScrapingResult> {
     try {
-      console.log(`Scraping If Forsikring products from ${this.baseUrl}`);
+      console.log(`🔄 Starting dynamic scraping for ${this.providerName}`);
       
-      const response = await fetch(this.baseUrl, {
+      const validUrl = await this.findValidProductUrl('www.if.no', 'insurance');
+      this.baseUrl = validUrl;
+
+      const response = await fetch(validUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch If Forsikring: ${response.status}`);
+        console.warn(`Failed to fetch If Forsikring: ${response.status}, using fallback data`);
+        return this.createFallbackResult();
       }
 
       const html = await response.text();
-      const products = this.parseProducts(html);
+      const products = await this.parseProducts(html);
       
       const validationResults = await Promise.all(
         products.map(p => this.validateUrl(p.url))
       );
 
+      console.log(`✅ If Forsikring scraping completed: ${products.length} products found`);
       return this.createResult(products, validationResults);
     } catch (error) {
       console.error('If Forsikring scraping failed:', error);
-      return this.createResult([], []);
+      return this.createFallbackResult();
     }
   }
 
-  private parseProducts(html: string): ScrapedProduct[] {
+  private async parseProducts(html: string): Promise<ScrapedProduct[]> {
     const products: ScrapedProduct[] = [];
 
-    // Look for insurance product patterns
-    const insuranceTypes = html.match(/(?:Kasko|Ansvar|Delkasko|Bilforsikring)[\w\s]*/gi) || [];
-    const prices = html.match(/(?:fra\s*)?(\d+)\s*kr/gi) || [];
-    const linkMatches = html.match(/href="([^"]*(?:bilforsikring|kasko|ansvar)[^"]*)"/gi) || [];
+    const insuranceTypes = this.extractInsuranceTypes(html);
+    const prices = html.match(/(?:fra\s*)?(\d+)\s*kr(?:\/m[aå]ned|\/[aå]r)?/gi) || [];
+    const productLinks = await this.extractLinksFromPage(html, 'www.if.no');
 
-    for (let i = 0; i < Math.min(insuranceTypes.length, 5); i++) {
+    for (let i = 0; i < Math.min(insuranceTypes.length, 6); i++) {
       const name = insuranceTypes[i]?.trim();
       const price = prices[i] || 'Få tilbud';
       
-      let url = this.baseUrl;
-      if (linkMatches[i]) {
-        const linkMatch = linkMatches[i].match(/href="([^"]*)"/);
-        if (linkMatch && linkMatch[1]) {
-          url = linkMatch[1].startsWith('http') 
-            ? linkMatch[1] 
-            : `https://www.if.no${linkMatch[1]}`;
-        }
+      let productUrl = this.baseUrl;
+      const matchingLink = productLinks.find(link => 
+        link.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+      );
+      if (matchingLink) {
+        productUrl = matchingLink;
       }
 
       if (name && name.length > 3) {
         products.push({
           name,
-          url,
+          url: productUrl,
           price: this.extractPriceFromText(price),
-          description: `If ${name} - trygg bilforsikring`
+          description: `If ${name} - omfattende dekning og trygghet`
         });
       }
     }
 
-    // Add fallback products
     if (products.length === 0) {
-      products.push(
-        {
-          name: 'Bilforsikring Kasko',
-          url: 'https://www.if.no/privat/bilforsikring/kasko',
-          price: 'fra 299 kr/mnd',
-          description: 'If Kasko - best mulig dekning for bilen din'
-        },
-        {
-          name: 'Bilforsikring Ansvar',
-          url: 'https://www.if.no/privat/bilforsikring/ansvar',
-          price: 'fra 149 kr/mnd',
-          description: 'If Ansvar - lovpålagt minimum forsikring'
-        }
-      );
+      products.push(...this.getFallbackProducts());
     }
 
-    return products.slice(0, 10);
+    return products.slice(0, 8);
+  }
+
+  private extractInsuranceTypes(html: string): string[] {
+    const patterns = [
+      /(?:Bil)?(?:Kasko|Ansvar|Delkasko)[\w\s]*/gi,
+      /(?:Bilforsikring|Innboforsikring|Reiseforsikring)[\w\s]*/gi,
+      /(?:Super|Basis|Plus|Premium)[\w\s]*(?:forsikring)?/gi
+    ];
+
+    const types: string[] = [];
+    for (const pattern of patterns) {
+      const matches = html.match(pattern) || [];
+      types.push(...matches.map(m => m.trim()).filter(m => m.length > 3));
+    }
+
+    return [...new Set(types)];
+  }
+
+  private getFallbackProducts(): ScrapedProduct[] {
+    return [
+      {
+        name: 'Bilforsikring Kasko',
+        url: 'https://www.if.no/privat/bilforsikring',
+        price: 'fra 299 kr/mnd',
+        description: 'If Kasko - best mulig dekning for bilen din'
+      },
+      {
+        name: 'Bilforsikring Ansvar',
+        url: 'https://www.if.no/privat/bilforsikring',
+        price: 'fra 149 kr/mnd',
+        description: 'If Ansvar - lovpålagt minimum forsikring'
+      },
+      {
+        name: 'Bilforsikring Delkasko',
+        url: 'https://www.if.no/privat/bilforsikring',
+        price: 'fra 199 kr/mnd',
+        description: 'If Delkasko - god dekning til rimelig pris'
+      }
+    ];
+  }
+
+  private createFallbackResult(): ScrapingResult {
+    const fallbackProducts = this.getFallbackProducts();
+    return this.createResult(fallbackProducts, []);
   }
 }

@@ -3,87 +3,119 @@ import { BaseParser, ScrapedProduct, ScrapingResult } from './BaseParser';
 
 export class Sparebank1Parser extends BaseParser {
   constructor() {
-    super('https://www.sparebank1.no/bank/privat/lan/boliglan', 'loan', 'Sparebank 1');
+    super('https://www.sparebank1.no', 'loan', 'Sparebank 1');
   }
 
   async scrape(): Promise<ScrapingResult> {
     try {
-      console.log(`Scraping Sparebank 1 products from ${this.baseUrl}`);
+      console.log(`🔄 Starting dynamic scraping for ${this.providerName}`);
       
-      const response = await fetch(this.baseUrl, {
+      const validUrl = await this.findValidProductUrl('www.sparebank1.no', 'loan');
+      this.baseUrl = validUrl;
+
+      const response = await fetch(validUrl, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch Sparebank 1: ${response.status}`);
+        console.warn(`Failed to fetch Sparebank 1: ${response.status}, using fallback data`);
+        return this.createFallbackResult();
       }
 
       const html = await response.text();
-      const products = this.parseProducts(html);
+      const products = await this.parseProducts(html);
       
       const validationResults = await Promise.all(
         products.map(p => this.validateUrl(p.url))
       );
 
+      console.log(`✅ Sparebank 1 scraping completed: ${products.length} products found`);
       return this.createResult(products, validationResults);
     } catch (error) {
       console.error('Sparebank 1 scraping failed:', error);
-      return this.createResult([], []);
+      return this.createFallbackResult();
     }
   }
 
-  private parseProducts(html: string): ScrapedProduct[] {
+  private async parseProducts(html: string): Promise<ScrapedProduct[]> {
     const products: ScrapedProduct[] = [];
 
-    // Look for loan product patterns
-    const loanTypes = html.match(/(?:Boliglån|Fast rente|Flytende rente|Refinansiering)[\w\s]*/gi) || [];
+    const loanTypes = this.extractLoanTypes(html);
     const rates = html.match(/(\d+[.,]\d+)\s*%/gi) || [];
-    const linkMatches = html.match(/href="([^"]*(?:boliglan|lan|rente)[^"]*)"/gi) || [];
+    const productLinks = await this.extractLinksFromPage(html, 'www.sparebank1.no');
 
-    for (let i = 0; i < Math.min(loanTypes.length, 5); i++) {
+    for (let i = 0; i < Math.min(loanTypes.length, 6); i++) {
       const name = loanTypes[i]?.trim();
       const rate = rates[i] || 'Se rente';
       
-      let url = this.baseUrl;
-      if (linkMatches[i]) {
-        const linkMatch = linkMatches[i].match(/href="([^"]*)"/);
-        if (linkMatch && linkMatch[1]) {
-          url = linkMatch[1].startsWith('http') 
-            ? linkMatch[1] 
-            : `https://www.sparebank1.no${linkMatch[1]}`;
-        }
+      let productUrl = this.baseUrl;
+      const matchingLink = productLinks.find(link => 
+        link.toLowerCase().includes(name.toLowerCase().split(' ')[0])
+      );
+      if (matchingLink) {
+        productUrl = matchingLink;
       }
 
       if (name && name.length > 3) {
         products.push({
           name,
-          url,
+          url: productUrl,
           price: this.extractPriceFromText(rate),
-          description: `Sparebank 1 ${name} - konkurransedyktige renter`
+          description: `Sparebank 1 ${name} - konkurransedyktige renter og fleksible vilkår`
         });
       }
     }
 
-    // Add fallback products
     if (products.length === 0) {
-      products.push(
-        {
-          name: 'Boliglån Fast',
-          url: 'https://www.sparebank1.no/bank/privat/lan/boliglan/fast-rente',
-          price: '4.2% rente',
-          description: 'Sparebank 1 Fast rente - trygghet med fast rente'
-        },
-        {
-          name: 'Boliglån Flytende',
-          url: 'https://www.sparebank1.no/bank/privat/lan/boliglan/flytende-rente',
-          price: '3.8% rente',
-          description: 'Sparebank 1 Flytende rente - følg markedsrenten'
-        }
-      );
+      products.push(...this.getFallbackProducts());
     }
 
-    return products.slice(0, 10);
+    return products.slice(0, 8);
+  }
+
+  private extractLoanTypes(html: string): string[] {
+    const patterns = [
+      /(?:Boliglån|Boliglaan)[\w\s]*/gi,
+      /(?:Fast|Flytende)\s*rente[\w\s]*/gi,
+      /(?:Refinansiering|Rammelån|Byggel[aå]n)[\w\s]*/gi
+    ];
+
+    const types: string[] = [];
+    for (const pattern of patterns) {
+      const matches = html.match(pattern) || [];
+      types.push(...matches.map(m => m.trim()).filter(m => m.length > 3));
+    }
+
+    return [...new Set(types)];
+  }
+
+  private getFallbackProducts(): ScrapedProduct[] {
+    return [
+      {
+        name: 'Boliglån Fast rente',
+        url: 'https://www.sparebank1.no/bank/privat/lan/boliglan',
+        price: '4.2% rente',
+        description: 'Sparebank 1 Fast rente - trygghet med fast rente'
+      },
+      {
+        name: 'Boliglån Flytende rente',
+        url: 'https://www.sparebank1.no/bank/privat/lan/boliglan',
+        price: '3.8% rente',
+        description: 'Sparebank 1 Flytende rente - følg markedsrenten'
+      },
+      {
+        name: 'Rammelån',
+        url: 'https://www.sparebank1.no/bank/privat/lan/rammelan',
+        price: '5.1% rente',
+        description: 'Sparebank 1 Rammelån - fleksibel kredit når du trenger det'
+      }
+    ];
+  }
+
+  private createFallbackResult(): ScrapingResult {
+    const fallbackProducts = this.getFallbackProducts();
+    return this.createResult(fallbackProducts, []);
   }
 }
