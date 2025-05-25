@@ -22,7 +22,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
   const Icon = iconMap[category.icon] || Shield;
   
   return (
-    <Link to={`/enhanced/${category.id}`} className="block">
+    <Link to={`/compare/${category.id}`} className="block">
       <div className="category-card bg-white rounded-lg p-6 h-full flex flex-col border border-slate-200 hover:border-sky-300 hover:shadow-lg transition-all">
         <div className="mb-4 flex items-center justify-between">
           <div className="p-3 bg-sky-50 rounded-full">
