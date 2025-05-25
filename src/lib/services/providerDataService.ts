@@ -2,6 +2,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 import { getMobileProviders } from '@/lib/data/mobileProviders';
+import { getElectricityProviders } from '@/lib/data/electricityProviders';
+import { getInsuranceProviders } from '@/lib/data/insuranceProviders';
+import { getLoanProviders } from '@/lib/data/loanProviders';
 
 class ProviderDataService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -36,10 +39,11 @@ class ProviderDataService {
       case 'mobile':
         return getMobileProviders();
       case 'electricity':
+        return getElectricityProviders();
       case 'insurance':
+        return getInsuranceProviders();
       case 'loan':
-        // Return empty array for now - these will be populated by scraper later
-        return [];
+        return getLoanProviders();
       default:
         return [];
     }
