@@ -1,6 +1,6 @@
+
 import React, { useEffect, useState } from 'react';
 import { realTimeScrapingService, ScrapedProduct } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
-import type { ScrapedProduct } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
 import RealTimeProductCard from './RealTimeProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Zap } from 'lucide-react';

@@ -679,3 +679,38 @@ export const getAllProviders = (): ProviderConfig[] => {
     ...loanProviders
   ];
 };
+
+export class ProviderConfigManager {
+  /**
+   * Get all provider configurations for a specific category
+   */
+  getConfigsForCategory(category: string): ProviderConfig[] {
+    switch (category) {
+      case 'mobile':
+        return mobileProviders;
+      case 'electricity':
+        return electricityProviders;
+      case 'insurance':
+        return insuranceProviders;
+      case 'loan':
+        return loanProviders;
+      default:
+        console.warn(`Unknown category: ${category}`);
+        return [];
+    }
+  }
+
+  /**
+   * Get all provider configurations
+   */
+  getAllConfigs(): ProviderConfig[] {
+    return getAllProviders();
+  }
+
+  /**
+   * Get configuration for a specific provider
+   */
+  getConfigByName(providerName: string): ProviderConfig | undefined {
+    return getAllProviders().find(config => config.name === providerName);
+  }
+}
