@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { ProviderConfig, ScrapingResult, ScrapedOffer, ScrapingJob, DatabaseRow, ScrapingLogInsert } from './types';
+import { ProviderConfig, ScrapingResult, ScrapedOffer, ScrapingJob, DatabaseRow } from './types';
 import { URLGeneratorService } from './URLGeneratorService';
 import { URLValidationService } from './URLValidationService';
 
@@ -303,7 +302,7 @@ export class UniversalScrapingService {
       return [];
     }
 
-    return configs?.map((config: DatabaseRow) => ({
+    return configs?.map((config: any) => ({
       id: config.id,
       provider_name: config.provider_name,
       category: config.category,
@@ -314,8 +313,6 @@ export class UniversalScrapingService {
       is_enabled: config.is_enabled,
       last_successful_scrape: config.last_successful_scrape,
       consecutive_failures: config.consecutive_failures || 0,
-      needs_js: config.needs_js || false,
-      url_generation_strategy: config.url_generation_strategy,
       scrape_frequency: config.scrape_frequency
     })) || [];
   }
@@ -350,11 +347,10 @@ export class UniversalScrapingService {
   }
 
   /**
-   * Log scraping job details using safe database operations
+   * Log scraping job details using scraping_jobs table
    */
   static async logScrapingJob(job: Partial<ScrapingJob>): Promise<void> {
     try {
-      // Use existing scraping_jobs table instead of scraping_logs
       await supabase.from('scraping_jobs').insert({
         provider_name: job.provider_name || '',
         category: job.category || '',
