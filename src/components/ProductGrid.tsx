@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Database, AlertTriangle, CheckCircle, RefreshCw, Clock } from 'lucide-react';
+import { ShoppingCart, RefreshCw } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
@@ -33,18 +33,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<string | null>(null);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`🔄 Laster kvalitetssikrede produkter for ${category}...`);
+      console.log(`🔄 Laster alle produkter for ${category}...`);
       
-      const validatedProducts = await enhancedBuifylService.getValidatedProducts(category);
-      setProducts(validatedProducts);
-      setLastSync(new Date().toISOString());
+      // Get all products without quality filtering
+      const allProducts = await enhancedBuifylService.getAllProducts(category);
+      setProducts(allProducts);
       
     } catch (err) {
       console.error('Feil ved lasting av produkter:', err);
@@ -104,7 +103,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <ShoppingCart size={16} />
-          <span>Validerer og laster produkter...</span>
+          <span>Laster produkter...</span>
         </div>
         <LoadingSkeleton />
       </div>
@@ -114,7 +113,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   if (error) {
     return (
       <div className="text-center py-12">
-        <Database size={48} className="mx-auto text-red-400 mb-4" />
+        <ShoppingCart size={48} className="mx-auto text-red-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2 text-red-600">Datafeil</h3>
         <p className="text-gray-600 mb-4">{error}</p>
         <Button onClick={loadProducts} variant="outline">
@@ -130,10 +129,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="empty-state text-center py-12">
         <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2">
-          Ingen kvalitetssikrede tilbud tilgjengelig
+          Ingen produkter tilgjengelig
         </h3>
         <p className="text-gray-600 mb-4">
-          Alle produkter gjennomgår kvalitetskontroll før visning.
+          Vi jobber med å få flere produkter tilgjengelig.
         </p>
         <Button onClick={handleManualSync} disabled={syncing}>
           <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -143,40 +142,22 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     );
   }
 
-  // Beregn kvalitetsstatistikk
-  const avgQuality = products.reduce((sum, p) => sum + p.qualityScore, 0) / products.length;
-  const liveDataCount = products.filter(p => p.isLiveData).length;
-  const verifiedCount = products.filter(p => p.validationStatus === 'verified').length;
-
   return (
     <div className="space-y-4">
-      {/* Kvalitetsindikatorer */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm">
-            <CheckCircle size={16} className="text-green-600" />
-            <span className="font-medium">Kvalitetssikrede produkter</span>
-          </div>
-          <Button 
-            onClick={handleManualSync} 
-            disabled={syncing}
-            size="sm"
-            variant="outline"
-          >
-            <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Synker...' : 'Sync'}
-          </Button>
-        </div>
-        <div className="text-xs text-gray-600 mt-1 space-y-1">
-          <div>📊 {products.length} produkter vises • Kvalitet: {avgQuality.toFixed(1)}%</div>
-          <div>⚡ {liveDataCount} med live data • ✅ {verifiedCount} fullt verifisert</div>
-          {lastSync && (
-            <div className="flex items-center">
-              <Clock size={12} className="mr-1" />
-              Sist kontrollert: {new Date(lastSync).toLocaleTimeString('nb-NO')}
-            </div>
-          )}
-        </div>
+      {/* Simple product count */}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-600">
+          {products.length} produkter tilgjengelig
+        </p>
+        <Button 
+          onClick={handleManualSync} 
+          disabled={syncing}
+          size="sm"
+          variant="outline"
+        >
+          <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Synker...' : 'Oppdater'}
+        </Button>
       </div>
       
       <div className="product-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

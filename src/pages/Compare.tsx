@@ -46,18 +46,6 @@ const Compare = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
               <p className="text-gray-300">{category.description[language]}</p>
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex items-center text-green-400 text-sm">
-                  <ShoppingCart size={16} className="mr-1" />
-                  {language === 'nb' ? 'Buifyl Shop - Live Data' : 'Buifyl Shop - Live Data'}
-                </div>
-                {lastUpdated && (
-                  <div className="flex items-center text-blue-400 text-xs">
-                    <Zap size={12} className="mr-1" />
-                    {language === 'nb' ? 'Sist oppdatert' : 'Last updated'}: {lastUpdated.toLocaleDateString('nb-NO')}
-                  </div>
-                )}
-              </div>
             </div>
           </div>
         </div>
@@ -79,24 +67,6 @@ const Compare = () => {
                     ? `Å sammenligne ${category.name[language].toLowerCase()} kan spare deg tusenvis av kroner i året. Våre brukere sparer i gjennomsnitt 2,345 kr per år!` 
                     : `Comparing ${category.name[language].toLowerCase()} can save you thousands of kroner per year. Our users save 2,345 NOK per year on average!`}
                 </p>
-              </div>
-              
-              {/* Buifyl Shop info */}
-              <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
-                <h3 className="font-semibold mb-2 text-gray-800 flex items-center">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {language === 'nb' ? 'Om produktene' : 'About the products'}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {language === 'nb' 
-                    ? 'Vi viser live produkter fra Buifyl Shop. Alle priser oppdateres automatisk.' 
-                    : 'We show live products from Buifyl Shop. All prices are updated automatically.'}
-                </p>
-                {lastUpdated && (
-                  <p className="text-xs text-green-600 mt-2">
-                    {language === 'nb' ? 'Sist oppdatert' : 'Last updated'}: {lastUpdated.toLocaleDateString('nb-NO')} {lastUpdated.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
               </div>
             </div>
           </div>
