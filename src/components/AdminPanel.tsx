@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { refreshProviderData } from '@/lib/data/providersLoader';
-import { RefreshCw, Play, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { RefreshCw, Play, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useLanguage } from '@/lib/languageContext';
 
 interface ProviderConfig {
@@ -18,23 +18,12 @@ interface ProviderConfig {
   consecutive_failures: number;
 }
 
-interface ScrapingJob {
-  id: string;
-  provider_name: string;
-  category: string;
-  status: string;
-  started_at: string;
-  completed_at: string | null;
-  results_count: number;
-  error_message: string | null;
-}
-
 const AdminPanel: React.FC = () => {
   const { language } = useLanguage();
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
-  const [jobs, setJobs] = useState<ScrapingJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRunningJobs, setIsRunningJobs] = useState<string[]>([]);
+  const [lastRefreshResults, setLastRefreshResults] = useState<{[key: string]: {success: boolean, message: string, timestamp: Date}}>({});
 
   useEffect(() => {
     loadData();
@@ -52,16 +41,6 @@ const AdminPanel: React.FC = () => {
       if (configError) throw configError;
       setConfigs(configData || []);
 
-      // Load recent scraping jobs
-      const { data: jobData, error: jobError } = await supabase
-        .from('scraping_jobs')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(10);
-
-      if (jobError) throw jobError;
-      setJobs(jobData || []);
-
     } catch (error) {
       console.error('Failed to load admin data:', error);
     } finally {
@@ -76,25 +55,40 @@ const AdminPanel: React.FC = () => {
     try {
       const result = await refreshProviderData(category);
       console.log('Scraping job completed:', result);
+      
+      setLastRefreshResults(prev => ({
+        ...prev,
+        [jobKey]: {
+          success: true,
+          message: language === 'nb' ? 'Scraping fullført' : 'Scraping completed',
+          timestamp: new Date()
+        }
+      }));
+      
       await loadData(); // Refresh the data
     } catch (error) {
       console.error('Scraping job failed:', error);
+      setLastRefreshResults(prev => ({
+        ...prev,
+        [jobKey]: {
+          success: false,
+          message: language === 'nb' ? 'Scraping feilet' : 'Scraping failed',
+          timestamp: new Date()
+        }
+      }));
     } finally {
       setIsRunningJobs(prev => prev.filter(k => k !== jobKey));
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle size={12} className="mr-1" />Fullført</Badge>;
-      case 'failed':
-        return <Badge variant="destructive"><AlertTriangle size={12} className="mr-1" />Feilet</Badge>;
-      case 'running':
-        return <Badge variant="secondary"><Clock size={12} className="mr-1" />Kjører</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  const getStatusBadge = (config: ProviderConfig) => {
+    if (config.consecutive_failures > 0) {
+      return <Badge variant="destructive"><AlertTriangle size={12} className="mr-1" />Feil</Badge>;
     }
+    if (config.last_successful_scrape) {
+      return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle size={12} className="mr-1" />OK</Badge>;
+    }
+    return <Badge variant="outline">Aldri kjørt</Badge>;
   };
 
   const categories = ['mobile', 'electricity', 'insurance', 'loan'];
@@ -161,6 +155,30 @@ const AdminPanel: React.FC = () => {
               </Button>
             ))}
           </div>
+          
+          {/* Show last refresh results */}
+          <div className="mt-4 space-y-2">
+            {Object.entries(lastRefreshResults).map(([key, result]) => (
+              <div key={key} className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${
+                result.success 
+                  ? 'text-green-700 bg-green-50' 
+                  : 'text-red-700 bg-red-50'
+              }`}>
+                {result.success ? (
+                  <CheckCircle size={12} />
+                ) : (
+                  <AlertTriangle size={12} />
+                )}
+                <span>{key}: {result.message}</span>
+                <span className="text-gray-500">
+                  {result.timestamp.toLocaleTimeString('nb-NO', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
@@ -184,9 +202,12 @@ const AdminPanel: React.FC = () => {
                       <div key={config.id} className="border rounded p-3 bg-gray-50">
                         <div className="flex justify-between items-start mb-2">
                           <span className="font-medium">{config.provider_name}</span>
-                          <Badge variant={config.is_enabled ? "default" : "secondary"}>
-                            {config.is_enabled ? 'Aktiv' : 'Inaktiv'}
-                          </Badge>
+                          <div className="flex flex-col gap-1">
+                            <Badge variant={config.is_enabled ? "default" : "secondary"}>
+                              {config.is_enabled ? 'Aktiv' : 'Inaktiv'}
+                            </Badge>
+                            {getStatusBadge(config)}
+                          </div>
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
                           <div>
@@ -200,52 +221,15 @@ const AdminPanel: React.FC = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Jobs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Siste Scraping Jobs</CardTitle>
-          <CardDescription>
-            Status og resultater fra de siste scraping-operasjonene
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {jobs.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">
-                Ingen scraping jobs funnet
-              </p>
-            ) : (
-              jobs.map(job => (
-                <div key={job.id} className="flex items-center justify-between border rounded p-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium">{job.provider_name}</span>
-                      <Badge variant="outline" className="text-xs">{job.category}</Badge>
-                      {getStatusBadge(job.status)}
-                    </div>
-                    <div className="text-sm text-gray-600 mt-1">
-                      Startet: {new Date(job.started_at).toLocaleString('nb-NO')}
-                      {job.results_count > 0 && (
-                        <span className="ml-3">Resultater: {job.results_count}</span>
-                      )}
-                    </div>
-                    {job.error_message && (
-                      <div className="text-sm text-red-600 mt-1">
-                        Feil: {job.error_message}
+                    {categoryConfigs.length === 0 && (
+                      <div className="text-gray-500 text-sm">
+                        Ingen konfigurasjoner funnet for {category}
                       </div>
                     )}
                   </div>
                 </div>
-              ))
-            )}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
