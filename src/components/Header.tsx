@@ -1,53 +1,72 @@
 
-import React from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useLanguage } from '@/lib/languageContext';
-import LanguageToggle from './LanguageToggle';
-import { Settings } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { getAvailableCategories } from '@/lib/i18n';
+import LanguageToggle from '@/components/LanguageToggle';
+import { Menu, X } from 'lucide-react';
 
 const Header = () => {
   const { language } = useLanguage();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const categories = getAvailableCategories();
+  
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
 
   return (
-    <header className="bg-white shadow-sm border-b">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold text-sky-600">
-            Skygruppen Compare
-          </Link>
-          
-          <nav className="hidden md:flex items-center space-x-6">
+    <header className="bg-white border-b border-border sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+        <Link to="/" className="flex items-center">
+          <span className="font-montserrat font-bold text-xl text-slate-900">
+            Skygruppen <span className="text-sky-600">Compare</span>
+          </span>
+        </Link>
+        
+        <div className="hidden md:flex items-center space-x-6">
+          {categories.map((category) => (
             <Link 
-              to="/" 
-              className="text-gray-700 hover:text-sky-600 transition-colors"
+              key={category.id} 
+              to={`/compare/${category.id}`}
+              className="text-gray-700 hover:text-sky-600 transition-colors font-medium"
             >
-              {language === 'nb' ? 'Hjem' : 'Home'}
+              {category.name[language]}
             </Link>
-            <Link 
-              to="/admin" 
-              className="text-gray-700 hover:text-sky-600 transition-colors flex items-center gap-1"
-            >
-              <Settings size={16} />
-              Admin
-            </Link>
-          </nav>
-
-          <div className="flex items-center space-x-4">
-            <LanguageToggle />
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              asChild
-              className="md:hidden"
-            >
-              <Link to="/admin">
-                <Settings size={16} />
+          ))}
+          <LanguageToggle />
+        </div>
+        
+        {/* Mobile menu button */}
+        <button 
+          className="md:hidden text-gray-700"
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+      
+      {/* Mobile menu */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-white border-t border-border animate-fade-in">
+          <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+            {categories.map((category) => (
+              <Link 
+                key={category.id} 
+                to={`/compare/${category.id}`}
+                className="text-gray-700 hover:text-sky-600 transition-colors py-2 font-medium"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {category.name[language]}
               </Link>
-            </Button>
+            ))}
+            <div className="py-2">
+              <LanguageToggle />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </header>
   );
 };
