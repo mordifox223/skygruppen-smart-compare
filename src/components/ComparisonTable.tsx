@@ -191,13 +191,13 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
               <div className="space-y-3">
                 <div className="text-gray-500">
                   {language === 'nb' 
-                    ? 'Vi jobber med å hente tilbud fra leverandørene.' 
-                    : 'We are working to fetch offers from providers.'}
+                    ? 'Ingen leverandører tilgjengelig for øyeblikket.' 
+                    : 'No providers available at the moment.'}
                 </div>
                 <div className="text-sm text-gray-400">
                   {language === 'nb' 
-                    ? 'Prøv igjen om litt, eller juster filtrene dine.' 
-                    : 'Try again in a moment, or adjust your filters.'}
+                    ? 'Data vil bli tilgjengelig når leverandørdata er hentet fra ekstern kilde.' 
+                    : 'Data will be available once provider information is fetched from external sources.'}
                 </div>
               </div>
             </div>

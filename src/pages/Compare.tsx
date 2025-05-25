@@ -9,8 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Database } from 'lucide-react';
+import { Database } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -71,29 +70,19 @@ const Compare = () => {
       <main className="flex-grow">
         <div className="bg-slate-900 text-white py-8">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
-                <p className="text-gray-300">{category.description[language]}</p>
-                {!isLoading && providers.length > 0 && (
-                  <p className="mt-2 text-sm text-gray-400">
-                    {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
-                    {providers.some(p => p.isValidData !== false) && (
-                      <span className="ml-2 text-green-400">
-                        • {language === 'nb' ? 'Oppdaterte priser' : 'Updated prices'}
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-              <Button 
-                onClick={loadProviders} 
-                variant="outline" 
-                className="text-white border-white hover:bg-white hover:text-gray-900"
-              >
-                <RefreshCw size={16} className="mr-2" />
-                {language === 'nb' ? 'Oppdater' : 'Refresh'}
-              </Button>
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
+              <p className="text-gray-300">{category.description[language]}</p>
+              {!isLoading && providers.length > 0 && (
+                <p className="mt-2 text-sm text-gray-400">
+                  {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+                  {providers.some(p => p.isValidData !== false) && (
+                    <span className="ml-2 text-green-400">
+                      • {language === 'nb' ? 'Oppdaterte priser' : 'Updated prices'}
+                    </span>
+                  )}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -113,11 +102,11 @@ const Compare = () => {
                 {language === 'nb' ? 'Ingen data tilgjengelig' : 'No data available'}
               </h3>
               <p className="text-gray-600 mb-4">{error}</p>
-              <div className="space-x-2">
-                <Button onClick={loadProviders} variant="outline">
-                  {language === 'nb' ? 'Prøv igjen' : 'Try again'}
-                </Button>
-              </div>
+              <p className="text-sm text-gray-500">
+                {language === 'nb' 
+                  ? 'Data vil bli tilgjengelig når leverandørdata er hentet fra ekstern kilde.' 
+                  : 'Data will be available once provider information is fetched from external sources.'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

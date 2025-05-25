@@ -2,10 +2,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 import { realDataService } from './realDataService';
-import { getMobileProviders } from '@/lib/data/mobileProviders';
-import { getElectricityProviders } from '@/lib/data/electricityProviders';
-import { getInsuranceProviders } from '@/lib/data/insuranceProviders';
-import { getLoanProviders } from '@/lib/data/loanProviders';
 
 class ProviderDataService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -13,9 +9,9 @@ class ProviderDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      console.log(`Getting providers for ${category} using enhanced data service`);
+      console.log(`Getting providers for ${category} using database only`);
       
-      // Try to get real data from Supabase first
+      // Only get real data from Supabase - no fallbacks to static data
       const realProviders = await realDataService.getProviders(category);
       
       if (realProviders.length > 0) {
@@ -23,43 +19,13 @@ class ProviderDataService {
         return this.enhanceProvidersWithValidation(realProviders);
       }
       
-      // Check if database has any data at all before using fallback
-      console.log(`No data found for ${category}, checking database status`);
-      const { data: totalOffers, error } = await supabase
-        .from('provider_offers')
-        .select('id', { count: 'exact' })
-        .limit(1);
-      
-      if (error) {
-        console.error('Database connection error:', error);
-        throw new Error(`Database error: ${error.message}`);
-      }
-      
-      // Only use fallback if database is completely empty
-      if (!totalOffers || totalOffers.length === 0) {
-        console.log(`Database is empty, using temporary fallback for ${category}`);
-        const staticProviders = this.getStaticProviders(category);
-        return staticProviders.map(provider => ({
-          ...provider,
-          isValidData: false,
-          validationStatus: 'Temporary data - system being set up'
-        }));
-      }
-      
-      // Database has data but this category doesn't - return empty state
-      console.log(`Category ${category} has no offers available in database`);
+      // If no data in database, return empty array
+      console.log(`No data found for ${category} in database`);
       return [];
 
     } catch (error) {
-      console.error(`Critical error in getProviders for ${category}:`, error);
-      
-      // Only fallback on connection errors, not empty data
-      const staticProviders = this.getStaticProviders(category);
-      return staticProviders.map(provider => ({
-        ...provider,
-        isValidData: false,
-        validationStatus: 'Connection error - using backup data'
-      }));
+      console.error(`Error in getProviders for ${category}:`, error);
+      return [];
     }
   }
 
@@ -79,21 +45,6 @@ class ProviderDataService {
         hasSpecificOffer: !!(provider.offerUrl && provider.offerUrl !== provider.url)
       };
     });
-  }
-
-  private getStaticProviders(category: string): Provider[] {
-    switch (category) {
-      case 'mobile':
-        return getMobileProviders();
-      case 'electricity':
-        return getElectricityProviders();
-      case 'insurance':
-        return getInsuranceProviders();
-      case 'loan':
-        return getLoanProviders();
-      default:
-        return [];
-    }
   }
 
   async triggerScraping(category?: string): Promise<any> {
