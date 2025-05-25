@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { enhancedBuifylService, EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
-import { realTimeScrapingService } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
+import { ScrapingScheduler } from '@/lib/services/universalScraping/ScrapingScheduler';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Database, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Database } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
@@ -37,67 +38,75 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [products, setProducts] = useState<EnhancedBuifylProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`Laster produkter fra database for ${category}...`);
+      console.log(`🔍 Loading products from database for ${category}...`);
       
+      // Load products directly from database (provider_offers table)
       const allProducts = await enhancedBuifylService.getAllProducts(category);
       setProducts(allProducts);
-      setLastRefresh(new Date());
+      
+      console.log(`✅ Loaded ${allProducts.length} products from database for ${category}`);
       
     } catch (err) {
-      console.error('Feil ved lasting av produkter:', err);
-      setError('Feil ved lasting av produkter fra database');
+      console.error('Feil ved lasting av produkter fra database:', err);
+      setError('Feil ved lasting av produkter');
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshDataWithScraping = async () => {
+  const handleManualSync = async () => {
     try {
-      console.log('🔄 Starter automatisk oppdatering av sanntidsdata...');
+      setSyncing(true);
+      console.log('🚀 Starting manual scraping and database update...');
       
-      // Scrape new data and store in database
-      await realTimeScrapingService.scrapeAllProviders(category);
+      // Run immediate scraping which stores data in database
+      await ScrapingScheduler.runImmediateScraping(category);
       
-      // Wait a bit for data to be stored, then reload
+      // Wait a moment for data to be stored, then reload
       setTimeout(() => {
         loadProducts();
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
-      console.error('Feil ved automatisk oppdatering:', error);
+      console.error('Feil ved manuell synkronisering:', error);
+      setError('Feil ved synkronisering av data');
+    } finally {
+      setSyncing(false);
     }
   };
 
   useEffect(() => {
-    // Initial scraping and loading when component mounts
-    refreshDataWithScraping();
-    
-    // Set up automatic refresh every 30 minutes
-    const interval = setInterval(refreshDataWithScraping, 30 * 60 * 1000);
-    
-    // Set up real-time listener for database changes
+    // Load initial products from database
+    loadProducts();
+
+    // Start automated scraping system (stores data in database)
+    ScrapingScheduler.startAutomation();
+
+    // Auto-sync once when component mounts
+    enhancedBuifylService.startAutoSync();
+
+    // Listen for real-time updates to provider_offers table
     const channel = supabase
-      .channel('realtime-products')
+      .channel('database-products')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'provider_offers',
         filter: `category=eq.${category}`
       }, (payload) => {
-        console.log('Real-time database oppdatering mottatt:', payload);
-        loadProducts();
+        console.log('📡 Real-time database update received:', payload);
+        loadProducts(); // Reload products when database changes
       })
       .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [category]);
@@ -105,11 +114,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Oppdaterer produktdata automatisk...</h2>
-            <p className="text-sm text-gray-600 mt-1">Henter nyeste tilbud fra leverandører</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-blue-500" />
+            <h2 className="text-xl font-semibold text-gray-900">Laster tilbud fra database...</h2>
           </div>
         </div>
         <LoadingSkeleton />
@@ -123,7 +131,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         <div className="max-w-md mx-auto">
           <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
           <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">Systemet vil automatisk prøve igjen om 30 minutter.</p>
+          <Button onClick={loadProducts} variant="outline">
+            <RefreshCw size={16} className="mr-2" />
+            Prøv igjen
+          </Button>
         </div>
       </div>
     );
@@ -133,13 +144,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
-          <h3 className="text-xl font-semibold mb-2">Ingen produkter tilgjengelig</h3>
+          <h3 className="text-xl font-semibold mb-2">Ingen produkter i database</h3>
           <p className="text-gray-600 mb-4">
-            Systemet oppdaterer produkter automatisk. Nye tilbud vil vises snart.
+            Starter automatisk scraping som lagrer data i databasen. Dette kan ta noen minutter.
           </p>
-          <p className="text-sm text-gray-500">
-            Automatisk oppdatering hver 30. minutt
-          </p>
+          <Button onClick={handleManualSync} disabled={syncing}>
+            <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Scraper og lagrer...' : 'Start scraping'}
+          </Button>
         </div>
       </div>
     );
@@ -149,24 +161,23 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Database className="h-5 w-5 text-green-500" />
+          <Database className="h-5 w-5 text-blue-500" />
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
             <p className="text-sm text-gray-600 mt-1">
-              {products.length} aktuelle tilbud
-              {lastRefresh && (
-                <span className="ml-2 text-gray-400">
-                  • Sist oppdatert: {lastRefresh.toLocaleTimeString('no-NO')}
-                </span>
-              )}
+              {products.length} tilbud fra database (automatisk oppdatert hver 30. min)
             </p>
           </div>
         </div>
-        
-        <div className="text-xs text-gray-400 flex items-center gap-1">
-          <RefreshCw className="h-3 w-3" />
-          Automatisk oppdatering hver 30 min
-        </div>
+        <Button 
+          onClick={handleManualSync} 
+          disabled={syncing}
+          size="sm"
+          variant="outline"
+        >
+          <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Scraper...' : 'Oppdater nå'}
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

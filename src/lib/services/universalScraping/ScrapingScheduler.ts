@@ -8,7 +8,7 @@ export class ScrapingScheduler {
   private static intervals: Map<string, NodeJS.Timeout> = new Map();
 
   /**
-   * Start automated scraping for all categories with real-time integration
+   * Start automated scraping for all categories
    */
   static startAutomation(): void {
     if (this.isRunning) {
@@ -16,17 +16,17 @@ export class ScrapingScheduler {
       return;
     }
 
-    console.log('🚀 Starting integrated automated scraping system');
+    console.log('🚀 Starting automated scraping system for all Norwegian providers');
     this.isRunning = true;
 
-    // Start real-time scraping service (every 30 minutes)
-    this.startRealTimeScrapingService();
+    // Schedule real-time scraping every 30 minutes - this is the main scraper
+    this.scheduleRealTimeScraping();
     
-    // Schedule daily full validation
-    this.scheduleDailyValidation();
+    // Schedule hourly validation
+    this.scheduleHourlyValidation();
     
-    // Schedule priority provider updates every hour
-    this.schedulePriorityUpdates();
+    // Run initial scraping to populate database with all providers
+    this.runInitialScraping();
   }
 
   /**
@@ -45,25 +45,31 @@ export class ScrapingScheduler {
   }
 
   /**
-   * Start real-time scraping service for automatic data collection
+   * Run initial scraping to populate database with all Norwegian providers
    */
-  private static startRealTimeScrapingService(): void {
-    console.log('🌐 Starting real-time scraping service...');
+  private static async runInitialScraping(): Promise<void> {
+    console.log('🌟 Running initial scraping for all Norwegian providers');
     
-    // Start automated scraping for all categories
-    realTimeScrapingService.startAutomatedScraping();
-    
-    console.log('✅ Real-time scraping service started (30 min intervals)');
+    const categories = ['mobile', 'electricity', 'insurance', 'loan'];
+    for (const category of categories) {
+      try {
+        console.log(`🔄 Initial scraping for ${category} providers from database`);
+        await realTimeScrapingService.scrapeAllProviders(category);
+        console.log(`✅ Initial scraping completed for ${category}`);
+      } catch (error) {
+        console.error(`❌ Initial scraping failed for ${category}:`, error);
+      }
+    }
   }
 
   /**
-   * Schedule daily validation at 3 AM
+   * Schedule hourly URL validation
    */
-  private static scheduleDailyValidation(): void {
-    const dailyInterval = setInterval(async () => {
+  private static scheduleHourlyValidation(): void {
+    const hourlyInterval = setInterval(async () => {
       const now = new Date();
-      if (now.getHours() === 3 && now.getMinutes() === 0) {
-        console.log('🌅 Starting daily URL validation');
+      if (now.getMinutes() === 0) {
+        console.log('🔍 Starting hourly URL validation for all providers');
         const categories = ['mobile', 'electricity', 'insurance', 'loan'];
         
         for (const category of categories) {
@@ -72,48 +78,48 @@ export class ScrapingScheduler {
       }
     }, 60000); // Check every minute
 
-    this.intervals.set('validation', dailyInterval);
-    console.log('📅 Scheduled daily URL validation at 3:00 AM');
+    this.intervals.set('validation', hourlyInterval);
+    console.log('📅 Scheduled hourly URL validation for all providers');
   }
 
   /**
-   * Schedule priority provider updates every hour
+   * Schedule real-time scraping every 30 minutes for all Norwegian providers
    */
-  private static schedulePriorityUpdates(): void {
-    const priorityProviders = ['Telenor', 'Telia', 'Ice', 'Fjordkraft', 'Tibber'];
-    
-    const priorityInterval = setInterval(async () => {
+  private static scheduleRealTimeScraping(): void {
+    const realTimeInterval = setInterval(async () => {
       const now = new Date();
-      if (now.getMinutes() === 0) {
-        console.log('⚡ Starting priority provider updates');
+      if (now.getMinutes() % 30 === 0) {
+        console.log('⚡ Starting automated scraping of all Norwegian providers and database update');
         
-        for (const providerName of priorityProviders) {
+        const categories = ['mobile', 'electricity', 'insurance', 'loan'];
+        for (const category of categories) {
           try {
-            console.log(`Updating priority provider: ${providerName}`);
-            // Priority providers get extra frequent updates
+            console.log(`📊 Scraping all ${category} providers and storing data in database`);
+            await realTimeScrapingService.scrapeAllProviders(category);
+            console.log(`✅ Data scraped and stored for all ${category} providers`);
           } catch (error) {
-            console.error(`Failed to update priority provider ${providerName}:`, error);
+            console.error(`❌ Failed automated scraping for ${category} providers:`, error);
           }
         }
       }
     }, 60000); // Check every minute
 
-    this.intervals.set('priority', priorityInterval);
-    console.log('📅 Scheduled priority provider updates every hour');
+    this.intervals.set('realtime', realTimeInterval);
+    console.log('📅 Scheduled real-time scraping every 30 minutes for all Norwegian providers');
   }
 
   /**
-   * Run immediate scraping for a specific category
+   * Run immediate scraping for a specific category and store in database
    */
   static async runImmediateScraping(category: string): Promise<void> {
-    console.log(`⚡ Running immediate real-time scraping for category: ${category}`);
+    console.log(`⚡ Running immediate scraping for all ${category} providers and storing in database`);
     
     try {
-      const results = await realTimeScrapingService.scrapeAllProviders(category);
-      
-      console.log(`✅ Immediate scraping completed: ${results.length} products processed and stored`);
+      // Use real-time scraping service which loads configs from database and stores data
+      await realTimeScrapingService.scrapeAllProviders(category);
+      console.log(`✅ Immediate scraping completed and data stored for all ${category} providers`);
     } catch (error) {
-      console.error(`❌ Immediate scraping failed for ${category}:`, error);
+      console.error(`❌ Immediate scraping failed for ${category} providers:`, error);
     }
   }
 
@@ -129,9 +135,8 @@ export class ScrapingScheduler {
       isRunning: this.isRunning,
       activeSchedules: Array.from(this.intervals.keys()),
       nextRun: {
-        realtime: 'Real-time scraping: Every 30 minutes',
-        validation: 'Next validation: 3:00 AM daily',
-        priority: 'Next priority update: Top of next hour'
+        validation: 'Next validation: Top of next hour',
+        realtime: 'Next database update: Every 30 minutes (all Norwegian providers)'
       }
     };
   }
