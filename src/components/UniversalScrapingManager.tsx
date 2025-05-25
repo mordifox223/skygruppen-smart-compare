@@ -9,7 +9,6 @@ import {
   Download, 
   CheckCircle, 
   XCircle, 
-  RefreshCw,
   ExternalLink,
   Globe,
   Target
@@ -178,7 +177,7 @@ const UniversalScrapingManager: React.FC = () => {
         <CardContent>
           <div className="flex gap-3 mb-4">
             <Button onClick={handleScrapeAll} disabled={isLoading} size="lg">
-              {isLoading ? <RefreshCw className="animate-spin mr-2" size={16} /> : <Globe className="mr-2" size={16} />}
+              <Globe className="mr-2" size={16} />
               Scrape Alt
             </Button>
             

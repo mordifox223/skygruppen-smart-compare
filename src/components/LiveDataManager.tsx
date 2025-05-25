@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
-  RefreshCw, 
   Download, 
   CheckCircle, 
   XCircle, 
@@ -122,24 +121,6 @@ const LiveDataManager: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const updateConfigs = async () => {
-    try {
-      await LiveDataService.updateProviderConfigs();
-      toast({
-        title: "Konfigurasjon oppdatert",
-        description: "Provider-konfigurasjoner er oppdatert",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "Feil ved oppdatering",
-        description: "Kunne ikke oppdatere konfigurasjoner",
-        variant: "destructive",
-        duration: 3000,
-      });
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -163,17 +144,12 @@ const LiveDataManager: React.FC = () => {
               </select>
               
               <Button onClick={handleScrapeCategory} disabled={isLoading}>
-                {isLoading ? <RefreshCw className="animate-spin mr-2" size={16} /> : <RefreshCw className="mr-2" size={16} />}
                 Scrape Live Data
               </Button>
               
               <Button onClick={handleValidateUrls} variant="outline" disabled={isLoading || products.length === 0}>
                 <CheckCircle className="mr-2" size={16} />
                 Valider URL-er
-              </Button>
-              
-              <Button onClick={updateConfigs} variant="secondary">
-                Oppdater Configs
               </Button>
             </div>
 
