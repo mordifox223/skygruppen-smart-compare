@@ -1,4 +1,3 @@
-
 import { urlTemplates, UrlTemplate } from './templates';
 
 export interface ProductInfo {
@@ -89,11 +88,37 @@ export class UniversalUrlMapper {
   }
   
   /**
-   * Generer slug fra produktnavn eller plan_name
+   * Generer slug fra produktnavn eller plan_name med leverandørspesifikk logikk
    */
   private static getProductSlug(product: ProductInfo): string {
     const name = product.plan_name || product.name;
+    
+    // Spesifikk logikk for Ice mobilabonnement
+    if (product.provider_name === 'Ice' && product.category === 'mobile') {
+      return this.generateIceSlug(name);
+    }
+    
+    // Standard slugify for andre leverandører
     return this.slugify(name);
+  }
+  
+  /**
+   * Generer Ice-spesifikk slug (f.eks. "Ice Smart 20GB" -> "20-gb")
+   */
+  private static generateIceSlug(planName: string): string {
+    // Fjern "Ice" prefix og lignende
+    let cleanName = planName.replace(/^Ice\s*/i, '').trim();
+    
+    // Ekstraksjonslogikk for datamengde
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `${amount}-${unit}`;
+    }
+    
+    // Fallback til standard slugify
+    return this.slugify(cleanName);
   }
   
   /**

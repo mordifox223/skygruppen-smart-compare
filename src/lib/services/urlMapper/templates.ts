@@ -1,4 +1,3 @@
-
 export interface UrlTemplate {
   baseUrl: string;
   pattern: string;
