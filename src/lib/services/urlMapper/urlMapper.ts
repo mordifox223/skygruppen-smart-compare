@@ -1,3 +1,4 @@
+
 import { urlTemplates, UrlTemplate } from './templates';
 
 export interface ProductInfo {
@@ -19,7 +20,7 @@ export class UniversalUrlMapper {
    */
   static generateRedirectUrl(product: ProductInfo): string {
     try {
-      console.log(`🔗 Genererer URL for ${product.provider_name} - ${product.name}`);
+      console.log(`🔗 Genererer smart URL for ${product.provider_name} - ${product.name}`);
       
       // Først: Bruk eksisterende direct_link eller offer_url hvis tilgjengelig
       if (product.direct_link && this.isValidUrl(product.direct_link)) {
@@ -32,10 +33,10 @@ export class UniversalUrlMapper {
         return this.addTrackingParams(product.offer_url, product);
       }
       
-      // Deretter: Generer URL basert på template
-      const generatedUrl = this.generateFromTemplate(product);
+      // Deretter: Generer URL basert på smart template-logikk
+      const generatedUrl = this.generateSmartUrl(product);
       if (generatedUrl) {
-        console.log(`✅ Generert URL fra template: ${generatedUrl}`);
+        console.log(`✅ Generert smart URL: ${generatedUrl}`);
         return this.addTrackingParams(generatedUrl, product);
       }
       
@@ -50,9 +51,9 @@ export class UniversalUrlMapper {
   }
   
   /**
-   * Generer URL fra template-konfigurasjon
+   * Generer smart URL basert på leverandørspesifikk logikk
    */
-  private static generateFromTemplate(product: ProductInfo): string | null {
+  private static generateSmartUrl(product: ProductInfo): string | null {
     const categoryTemplates = urlTemplates[product.category];
     if (!categoryTemplates) {
       console.log(`⚠️ Ingen templates funnet for kategori: ${product.category}`);
@@ -67,49 +68,104 @@ export class UniversalUrlMapper {
     
     // Sjekk om template krever spesifikke data
     if (template.requiresProductId && !product.productId) {
-      console.log(`⚠️ Template krever productId, men mangler for ${product.provider_name}`);
+      console.log(`⚠️ Template krever productId, fallback for ${product.provider_name}`);
       return template.fallbackUrl;
     }
     
-    if (template.requiresSlug && !this.getProductSlug(product)) {
-      console.log(`⚠️ Template krever slug, men kan ikke genereres for ${product.provider_name}`);
+    if (template.requiresSlug && !this.getSmartSlug(product, template)) {
+      console.log(`⚠️ Template krever slug, fallback for ${product.provider_name}`);
       return template.fallbackUrl;
     }
     
-    // Bygg URL fra template
+    // Bygg URL fra template med smart slug-generering
     let url = template.baseUrl + template.pattern;
     
     // Erstatt placeholders
     url = url.replace('{productId}', product.productId || '');
-    url = url.replace('{slug}', this.getProductSlug(product) || '');
+    url = url.replace('{slug}', this.getSmartSlug(product, template) || '');
     url = url.replace('{id}', product.id || '');
     
     return url;
   }
   
   /**
-   * Generer slug fra produktnavn eller plan_name med leverandørspesifikk logikk
+   * Generer smart slug basert på leverandør og template-type
    */
-  private static getProductSlug(product: ProductInfo): string {
+  private static getSmartSlug(product: ProductInfo, template: UrlTemplate): string {
     const name = product.plan_name || product.name;
+    const generator = template.urlGenerator || 'standard';
     
-    // Spesifikk logikk for Ice mobilabonnement
-    if (product.provider_name === 'Ice' && product.category === 'mobile') {
-      return this.generateIceSlug(name);
+    console.log(`🧠 Generating smart slug for ${product.provider_name} using ${generator} generator`);
+    console.log(`📝 Plan name: "${name}"`);
+    
+    switch (generator) {
+      case 'ice':
+        return this.generateIceSlug(name);
+      case 'talkmore':
+        return this.generateTalkmoreSlug(name);
+      case 'onecall':
+        return this.generateOneCallSlug(name);
+      case 'mycall':
+        return this.generateMyCallSlug(name);
+      default:
+        return this.slugify(name);
     }
-    
-    // Standard slugify for andre leverandører
-    return this.slugify(name);
   }
   
   /**
-   * Generer Ice-spesifikk slug (f.eks. "Ice Smart 20GB" -> "20-gb")
+   * Ice-spesifikk slug: "Ice Smart 20GB" -> "20-gb"
    */
   private static generateIceSlug(planName: string): string {
-    // Fjern "Ice" prefix og lignende
-    let cleanName = planName.replace(/^Ice\s*/i, '').trim();
+    console.log(`🧊 Generating Ice slug from: "${planName}"`);
     
-    // Ekstraksjonslogikk for datamengde
+    // Fjern "Ice" prefix og common words
+    let cleanName = planName.replace(/^Ice\s*/i, '').replace(/Smart\s*/i, '').trim();
+    console.log(`🧹 Cleaned name: "${cleanName}"`);
+    
+    // Prioriter datamengde-matching
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb|tb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      const slug = `${amount}-${unit}`;
+      console.log(`📊 Data match found: ${slug}`);
+      return slug;
+    }
+    
+    // Fallback til standard slugify
+    const fallback = this.slugify(cleanName);
+    console.log(`🔄 Fallback slug: ${fallback}`);
+    return fallback;
+  }
+  
+  /**
+   * Talkmore-spesifikk slug
+   */
+  private static generateTalkmoreSlug(planName: string): string {
+    console.log(`📞 Generating Talkmore slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^Talkmore\s*/i, '').trim();
+    
+    // Check for data plans
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `${amount}${unit}`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * OneCall-spesifikk slug
+   */
+  private static generateOneCallSlug(planName: string): string {
+    console.log(`☎️ Generating OneCall slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^OneCall\s*/i, '').trim();
+    
+    // Check for data plans
     const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
     if (dataMatch) {
       const amount = dataMatch[1];
@@ -117,8 +173,16 @@ export class UniversalUrlMapper {
       return `${amount}-${unit}`;
     }
     
-    // Fallback til standard slugify
     return this.slugify(cleanName);
+  }
+  
+  /**
+   * MyCall-spesifikk slug (bruker productId)
+   */
+  private static generateMyCallSlug(planName: string): string {
+    console.log(`📱 Generating MyCall slug from: "${planName}"`);
+    // MyCall bruker productId i URL, så vi returnerer en placeholder
+    return this.slugify(planName);
   }
   
   /**

@@ -1,9 +1,11 @@
+
 export interface UrlTemplate {
   baseUrl: string;
   pattern: string;
   fallbackUrl: string;
   requiresProductId?: boolean;
   requiresSlug?: boolean;
+  urlGenerator?: 'standard' | 'ice' | 'mycall' | 'talkmore' | 'onecall';
 }
 
 export interface ProviderUrlTemplates {
@@ -21,13 +23,15 @@ export const urlTemplates: CategoryUrlTemplates = {
       baseUrl: 'https://www.ice.no',
       pattern: '/mobilabonnement/{slug}/',
       fallbackUrl: 'https://www.ice.no/mobilabonnement/',
-      requiresSlug: true
+      requiresSlug: true,
+      urlGenerator: 'ice'
     },
     'Talkmore': {
       baseUrl: 'https://www.talkmore.no',
       pattern: '/privat/abonnement/{slug}/',
       fallbackUrl: 'https://www.talkmore.no/privat/abonnement/',
-      requiresSlug: true
+      requiresSlug: true,
+      urlGenerator: 'talkmore'
     },
     'Telenor': {
       baseUrl: 'https://www.telenor.no',
@@ -43,7 +47,8 @@ export const urlTemplates: CategoryUrlTemplates = {
       baseUrl: 'https://onecall.no',
       pattern: '/abonnement/{slug}/',
       fallbackUrl: 'https://onecall.no/abonnement/',
-      requiresSlug: true
+      requiresSlug: true,
+      urlGenerator: 'onecall'
     },
     'Chilimobil': {
       baseUrl: 'https://chilimobil.no',
@@ -55,7 +60,8 @@ export const urlTemplates: CategoryUrlTemplates = {
       baseUrl: 'https://mycall.no',
       pattern: '/mobilabonnement/bestill?productId={productId}',
       fallbackUrl: 'https://mycall.no/mobilabonnement/',
-      requiresProductId: true
+      requiresProductId: true,
+      urlGenerator: 'mycall'
     },
     'Happybytes': {
       baseUrl: 'https://happybytes.no',
