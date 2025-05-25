@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Provider } from '@/lib/types';
@@ -55,7 +54,7 @@ export const useProviderOffers = (category?: string) => {
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: true, // Ensure the query is enabled
+    enabled: true,
   });
 };
 

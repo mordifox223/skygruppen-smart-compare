@@ -8,7 +8,6 @@ import { LanguageProvider } from "@/lib/languageContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Compare from "./pages/Compare";
-import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -33,7 +32,6 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/compare/:categoryId" element={<Compare />} />
-              <Route path="/admin" element={<Admin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
