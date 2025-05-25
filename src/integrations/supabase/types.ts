@@ -91,6 +91,7 @@ export type Database = {
           created_at: string | null
           data_allowance: string | null
           data_source: string | null
+          data_updated_at: string | null
           direct_link: string | null
           features: Json | null
           id: string
@@ -104,7 +105,9 @@ export type Database = {
           provider_name: string
           scrape_attempts: number | null
           scrape_errors: Json | null
+          source_url: string | null
           speed: string | null
+          validation_status: string | null
         }
         Insert: {
           category: string
@@ -112,6 +115,7 @@ export type Database = {
           created_at?: string | null
           data_allowance?: string | null
           data_source?: string | null
+          data_updated_at?: string | null
           direct_link?: string | null
           features?: Json | null
           id?: string
@@ -125,7 +129,9 @@ export type Database = {
           provider_name: string
           scrape_attempts?: number | null
           scrape_errors?: Json | null
+          source_url?: string | null
           speed?: string | null
+          validation_status?: string | null
         }
         Update: {
           category?: string
@@ -133,6 +139,7 @@ export type Database = {
           created_at?: string | null
           data_allowance?: string | null
           data_source?: string | null
+          data_updated_at?: string | null
           direct_link?: string | null
           features?: Json | null
           id?: string
@@ -146,7 +153,9 @@ export type Database = {
           provider_name?: string
           scrape_attempts?: number | null
           scrape_errors?: Json | null
+          source_url?: string | null
           speed?: string | null
+          validation_status?: string | null
         }
         Relationships: []
       }
