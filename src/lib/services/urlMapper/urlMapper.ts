@@ -1,18 +1,8 @@
 
-import { urlTemplates, UrlTemplate } from './templates';
-
-export interface ProductInfo {
-  id: string;
-  name: string;
-  provider_name: string;
-  category: string;
-  plan_name?: string;
-  productId?: string;
-  slug?: string;
-  offer_url?: string;
-  direct_link?: string;
-  source_url?: string;
-}
+import { urlTemplates } from './templates';
+import { UrlTemplate, ProductInfo } from './types';
+import { SlugGenerators } from './slugGenerators';
+import { UrlUpdater } from './urlUpdater';
 
 export class UniversalUrlMapper {
   /**
@@ -32,7 +22,14 @@ export class UniversalUrlMapper {
       const generatedUrl = this.generateSmartUrl(product);
       if (generatedUrl) {
         console.log(`✅ Generert smart URL: ${generatedUrl}`);
-        return this.addTrackingParams(generatedUrl, product);
+        const trackedUrl = this.addTrackingParams(generatedUrl, product);
+        
+        // Update the generated URL in Supabase asynchronously
+        UrlUpdater.updateGeneratedUrl(product, trackedUrl).catch(error => {
+          console.error('Failed to update URL in Supabase:', error);
+        });
+        
+        return trackedUrl;
       }
       
       // Hvis offer_url er forskjellig fra source_url, bruk den
@@ -102,221 +99,26 @@ export class UniversalUrlMapper {
     
     switch (generator) {
       case 'ice':
-        return this.generateIceSlug(planName);
+        return SlugGenerators.generateIceSlug(planName);
       case 'talkmore':
-        return this.generateTalkmoreSlug(planName);
+        return SlugGenerators.generateTalkmoreSlug(planName);
       case 'onecall':
-        return this.generateOneCallSlug(planName);
+        return SlugGenerators.generateOneCallSlug(planName);
       case 'mycall':
-        return this.generateMyCallSlug(planName);
+        return SlugGenerators.generateMyCallSlug(planName);
       case 'chilimobil':
-        return this.generateChilimobilSlug(planName);
+        return SlugGenerators.generateChilimobilSlug(planName);
       case 'happybytes':
-        return this.generateHappybytesSlug(planName);
+        return SlugGenerators.generateHappybytesSlug(planName);
       case 'plussmobil':
-        return this.generatePlussmobilSlug(planName);
+        return SlugGenerators.generatePlussmobilSlug(planName);
       case 'saga':
-        return this.generateSagaSlug(planName);
+        return SlugGenerators.generateSagaSlug(planName);
       case 'release':
-        return this.generateReleaseSlug(planName);
+        return SlugGenerators.generateReleaseSlug(planName);
       default:
-        return this.generateStandardSlug(planName);
+        return SlugGenerators.generateStandardSlug(planName);
     }
-  }
-  
-  /**
-   * Ice-spesifikk slug: "Ice Smart 20GB" -> "20-gb"
-   */
-  private static generateIceSlug(planName: string): string {
-    console.log(`🧊 Generating Ice slug from: "${planName}"`);
-    
-    // Fjern "Ice" prefix og common words
-    let cleanName = planName.replace(/^Ice\s*/i, '').replace(/Smart\s*/i, '').trim();
-    console.log(`🧹 Cleaned name: "${cleanName}"`);
-    
-    // Prioriter datamengde-matching
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb|tb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      const slug = `${amount}-${unit}`;
-      console.log(`📊 Data match found: ${slug}`);
-      return slug;
-    }
-    
-    // Fallback til standard slugify
-    const fallback = this.slugify(cleanName);
-    console.log(`🔄 Fallback slug: ${fallback}`);
-    return fallback;
-  }
-  
-  /**
-   * Talkmore-spesifikk slug
-   */
-  private static generateTalkmoreSlug(planName: string): string {
-    console.log(`📞 Generating Talkmore slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^Talkmore\s*/i, '').trim();
-    
-    // Check for data plans
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `${amount}${unit}`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * OneCall-spesifikk slug
-   */
-  private static generateOneCallSlug(planName: string): string {
-    console.log(`☎️ Generating OneCall slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^OneCall\s*/i, '').trim();
-    
-    // Check for data plans
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `${amount}-${unit}`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * MyCall-spesifikk slug (bruker productId)
-   */
-  private static generateMyCallSlug(planName: string): string {
-    console.log(`📱 Generating MyCall slug from: "${planName}"`);
-    return this.slugify(planName);
-  }
-  
-  /**
-   * Chilimobil-spesifikk slug
-   */
-  private static generateChilimobilSlug(planName: string): string {
-    console.log(`🌶️ Generating Chilimobil slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^Chilimobil\s*/i, '').trim();
-    
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `abonnement-${amount}${unit}`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * Happybytes-spesifikk slug
-   */
-  private static generateHappybytesSlug(planName: string): string {
-    console.log(`😊 Generating Happybytes slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^Happybytes\s*/i, '').trim();
-    
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `${amount}-${unit}-abonnement`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * PlussMobil-spesifikk slug
-   */
-  private static generatePlussmobilSlug(planName: string): string {
-    console.log(`➕ Generating PlussMobil slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^PlussMobil\s*/i, '').trim();
-    
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `mobil-${amount}${unit}`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * Saga-spesifikk slug
-   */
-  private static generateSagaSlug(planName: string): string {
-    console.log(`⚔️ Generating Saga slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^Saga\s*/i, '').trim();
-    
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `saga-${amount}${unit}`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * Release-spesifikk slug
-   */
-  private static generateReleaseSlug(planName: string): string {
-    console.log(`🚀 Generating Release slug from: "${planName}"`);
-    
-    let cleanName = planName.replace(/^Release\s*/i, '').trim();
-    
-    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `${amount}${unit}-abonnement`;
-    }
-    
-    return this.slugify(cleanName);
-  }
-  
-  /**
-   * Standard slug-generering
-   */
-  private static generateStandardSlug(planName: string): string {
-    console.log(`🔧 Generating standard slug from: "${planName}"`);
-    
-    // Check for data plans først
-    const dataMatch = planName.match(/(\d+)\s*(gb|mb)/i);
-    if (dataMatch) {
-      const amount = dataMatch[1];
-      const unit = dataMatch[2].toLowerCase();
-      return `${amount}-${unit}`;
-    }
-    
-    return this.slugify(planName);
-  }
-  
-  /**
-   * Konverter tekst til URL-slug
-   */
-  private static slugify(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/[æåø]/g, (match) => {
-        const replacements: { [key: string]: string } = { 'æ': 'ae', 'å': 'aa', 'ø': 'oe' };
-        return replacements[match] || match;
-      })
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/^-|-$/g, '');
   }
   
   /**
@@ -386,4 +188,24 @@ export class UniversalUrlMapper {
   static getAvailableCategories(): string[] {
     return Object.keys(urlTemplates);
   }
+
+  /**
+   * Update URLs for all providers in a category
+   */
+  static async updateCategoryUrls(category: string): Promise<number> {
+    const providers = this.getProvidersForCategory(category);
+    let totalUpdated = 0;
+    
+    for (const provider of providers) {
+      const updated = await UrlUpdater.updateProviderUrls(provider, category);
+      totalUpdated += updated;
+    }
+    
+    console.log(`🎯 Updated ${totalUpdated} URLs for category ${category}`);
+    return totalUpdated;
+  }
 }
+
+// Re-export for convenience
+export { UrlUpdater, SlugGenerators };
+export * from './types';
