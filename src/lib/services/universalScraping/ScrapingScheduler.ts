@@ -1,6 +1,7 @@
 
 import { UniversalScrapingService } from './UniversalScrapingService';
 import { URLValidationService } from './URLValidationService';
+import { realTimeScrapingService } from '../realTimeScraper/RealTimeScrapingService';
 
 export class ScrapingScheduler {
   private static isRunning = false;
@@ -24,8 +25,8 @@ export class ScrapingScheduler {
     // Schedule hourly validation
     this.scheduleHourlyValidation();
     
-    // Schedule priority provider updates every 30 minutes
-    this.schedulePriorityUpdates();
+    // Schedule real-time scraping every 30 minutes
+    this.scheduleRealTimeScraping();
   }
 
   /**
@@ -80,29 +81,28 @@ export class ScrapingScheduler {
   }
 
   /**
-   * Schedule priority provider updates every 30 minutes
+   * Schedule real-time scraping every 30 minutes
    */
-  private static schedulePriorityUpdates(): void {
-    const priorityProviders = ['Telenor', 'Telia', 'Ice', 'Fjordkraft', 'Tibber'];
-    
-    const priorityInterval = setInterval(async () => {
+  private static scheduleRealTimeScraping(): void {
+    const realTimeInterval = setInterval(async () => {
       const now = new Date();
       if (now.getMinutes() % 30 === 0) {
-        console.log('⚡ Starting priority provider updates');
+        console.log('⚡ Starting automated real-time scraping');
         
-        for (const providerName of priorityProviders) {
+        const categories = ['mobile', 'electricity', 'insurance', 'loan'];
+        for (const category of categories) {
           try {
-            // This would scrape specific high-priority providers
-            console.log(`Updating priority provider: ${providerName}`);
+            await realTimeScrapingService.scrapeAllProviders(category);
+            console.log(`✅ Completed automated scraping for ${category}`);
           } catch (error) {
-            console.error(`Failed to update priority provider ${providerName}:`, error);
+            console.error(`❌ Failed automated scraping for ${category}:`, error);
           }
         }
       }
     }, 60000); // Check every minute
 
-    this.intervals.set('priority', priorityInterval);
-    console.log('📅 Scheduled priority provider updates every 30 minutes');
+    this.intervals.set('realtime', realTimeInterval);
+    console.log('📅 Scheduled real-time scraping every 30 minutes');
   }
 
   /**
@@ -112,10 +112,12 @@ export class ScrapingScheduler {
     console.log(`⚡ Running immediate scraping for category: ${category}`);
     
     try {
-      const results = await UniversalScrapingService.scrapeCategory(category);
-      const successCount = results.filter(r => r.success).length;
+      // Run both universal and real-time scraping
+      const universalResults = await UniversalScrapingService.scrapeCategory(category);
+      await realTimeScrapingService.scrapeAllProviders(category);
       
-      console.log(`✅ Immediate scraping completed: ${successCount}/${results.length} providers successful`);
+      const successCount = universalResults.filter(r => r.success).length;
+      console.log(`✅ Immediate scraping completed: ${successCount}/${universalResults.length} providers successful`);
     } catch (error) {
       console.error(`❌ Immediate scraping failed for ${category}:`, error);
     }
@@ -135,7 +137,7 @@ export class ScrapingScheduler {
       nextRun: {
         daily: 'Next daily scraping: 3:00 AM',
         validation: 'Next validation: Top of next hour',
-        priority: 'Next priority update: Every 30 minutes'
+        realtime: 'Next real-time update: Every 30 minutes'
       }
     };
   }

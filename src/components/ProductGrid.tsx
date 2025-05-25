@@ -1,13 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { enhancedBuifylService, EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
+import { realTimeScrapingService } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
-import RealTimeProductGrid from './RealTimeProductGrid';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Zap, Database } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RefreshCw, Database } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
@@ -62,9 +61,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      console.log('Starter manuell synkronisering...');
+      console.log('Starter manuell synkronisering og automatisk scraping...');
       
+      // Trigger both manual sync and automated scraping
       await enhancedBuifylService.triggerDataSync();
+      await realTimeScrapingService.scrapeAllProviders(category);
       
       setTimeout(() => {
         loadProducts();
@@ -80,6 +81,9 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
 
   useEffect(() => {
     loadProducts();
+
+    // Start automated scraping in the background
+    realTimeScrapingService.startAutomatedScraping(category);
 
     enhancedBuifylService.startAutoSync();
 
@@ -101,85 +105,80 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     };
   }, [category]);
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="h-5 w-5 text-blue-500" />
+            <h2 className="text-xl font-semibold text-gray-900">Laster tilbud...</h2>
+          </div>
+        </div>
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={loadProducts} variant="outline">
+            <RefreshCw size={16} className="mr-2" />
+            Prøv igjen
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-2">Ingen produkter tilgjengelig</h3>
+          <p className="text-gray-600 mb-4">
+            Vi jobber med å få flere produkter tilgjengelig. Automatisk oppdatering kjører i bakgrunnen.
+          </p>
+          <Button onClick={handleManualSync} disabled={syncing}>
+            <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Oppdaterer...' : 'Oppdater produkter'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="realtime" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="realtime" className="flex items-center gap-2">
-            <Zap size={16} />
-            Sanntidsdata
-          </TabsTrigger>
-          <TabsTrigger value="database" className="flex items-center gap-2">
-            <Database size={16} />
-            Database
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="realtime" className="mt-6">
-          <RealTimeProductGrid category={category} />
-        </TabsContent>
-        
-        <TabsContent value="database" className="mt-6">
-          {loading ? (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
-              </div>
-              <LoadingSkeleton />
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <div className="max-w-md mx-auto">
-                <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
-                <p className="text-gray-600 mb-4">{error}</p>
-                <Button onClick={loadProducts} variant="outline">
-                  <RefreshCw size={16} className="mr-2" />
-                  Prøv igjen
-                </Button>
-              </div>
-            </div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="max-w-md mx-auto">
-                <h3 className="text-xl font-semibold mb-2">Ingen produkter tilgjengelig</h3>
-                <p className="text-gray-600 mb-4">
-                  Vi jobber med å få flere produkter tilgjengelig.
-                </p>
-                <Button onClick={handleManualSync} disabled={syncing}>
-                  <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Synkroniserer...' : 'Oppdater produkter'}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
-                  <p className="text-sm text-gray-600 mt-1">
-                    {products.length} tilbud tilgjengelig
-                  </p>
-                </div>
-                <Button 
-                  onClick={handleManualSync} 
-                  disabled={syncing}
-                  size="sm"
-                  variant="outline"
-                >
-                  <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
-                  {syncing ? 'Oppdaterer...' : 'Oppdater'}
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Database className="h-5 w-5 text-blue-500" />
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {products.length} tilbud tilgjengelig (automatisk oppdatert)
+            </p>
+          </div>
+        </div>
+        <Button 
+          onClick={handleManualSync} 
+          disabled={syncing}
+          size="sm"
+          variant="outline"
+        >
+          <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Oppdaterer...' : 'Oppdater'}
+        </Button>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map(product => (
+          <ProductCard key={product.id} product={product} />
+        ))}
+      </div>
     </div>
   );
 };
