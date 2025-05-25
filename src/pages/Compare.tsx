@@ -10,7 +10,6 @@ import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -65,21 +64,15 @@ const Compare = () => {
               <div>
                 <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
                 <p className="text-gray-300">{category.description[language]}</p>
-                <p className="mt-2 text-sm text-gray-400">
-                  {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
-                </p>
+                {!isLoading && (
+                  <p className="mt-2 text-sm text-gray-400">
+                    {providers.length > 0 
+                      ? `${providers.length} ${language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}`
+                      : language === 'nb' ? 'Henter leverandører...' : 'Fetching providers...'
+                    }
+                  </p>
+                )}
               </div>
-              
-              <Button
-                onClick={loadProviders}
-                variant="outline"
-                size="sm"
-                className="text-white border-white hover:bg-white hover:text-slate-900"
-                disabled={isLoading}
-              >
-                <RefreshCw size={16} className={isLoading ? 'animate-spin mr-2' : 'mr-2'} />
-                {language === 'nb' ? 'Oppdater' : 'Refresh'}
-              </Button>
             </div>
           </div>
         </div>
@@ -119,16 +112,18 @@ const Compare = () => {
                 </div>
                 
                 {/* Provider count info */}
-                <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
-                  <h3 className="font-semibold mb-2 text-gray-800">
-                    {language === 'nb' ? 'Om dataene' : 'About the data'}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    {language === 'nb' 
-                      ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Data oppdateres daglig for å sikre nøyaktighet.` 
-                      : `We compare prices and services from ${providers.length} providers. Data is updated daily to ensure accuracy.`}
-                  </p>
-                </div>
+                {providers.length > 0 && (
+                  <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
+                    <h3 className="font-semibold mb-2 text-gray-800">
+                      {language === 'nb' ? 'Om dataene' : 'About the data'}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      {language === 'nb' 
+                        ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Data oppdateres automatisk daglig for å sikre nøyaktighet.` 
+                        : `We compare prices and services from ${providers.length} providers. Data is updated automatically daily to ensure accuracy.`}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

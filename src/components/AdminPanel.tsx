@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { refreshProviderData } from '@/lib/data/providersLoader';
-import { RefreshCw, Play, AlertTriangle, CheckCircle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, CheckCircle, Database } from 'lucide-react';
 import { useLanguage } from '@/lib/languageContext';
 
 interface ProviderConfig {
@@ -22,8 +21,6 @@ const AdminPanel: React.FC = () => {
   const { language } = useLanguage();
   const [configs, setConfigs] = useState<ProviderConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRunningJobs, setIsRunningJobs] = useState<string[]>([]);
-  const [lastRefreshResults, setLastRefreshResults] = useState<{[key: string]: {success: boolean, message: string, timestamp: Date}}>({});
 
   useEffect(() => {
     loadData();
@@ -45,39 +42,6 @@ const AdminPanel: React.FC = () => {
       console.error('Failed to load admin data:', error);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const runScrapingJob = async (category?: string) => {
-    const jobKey = category || 'all';
-    setIsRunningJobs(prev => [...prev, jobKey]);
-    
-    try {
-      const result = await refreshProviderData(category);
-      console.log('Scraping job completed:', result);
-      
-      setLastRefreshResults(prev => ({
-        ...prev,
-        [jobKey]: {
-          success: true,
-          message: language === 'nb' ? 'Scraping fullført' : 'Scraping completed',
-          timestamp: new Date()
-        }
-      }));
-      
-      await loadData(); // Refresh the data
-    } catch (error) {
-      console.error('Scraping job failed:', error);
-      setLastRefreshResults(prev => ({
-        ...prev,
-        [jobKey]: {
-          success: false,
-          message: language === 'nb' ? 'Scraping feilet' : 'Scraping failed',
-          timestamp: new Date()
-        }
-      }));
-    } finally {
-      setIsRunningJobs(prev => prev.filter(k => k !== jobKey));
     }
   };
 
@@ -106,78 +70,57 @@ const AdminPanel: React.FC = () => {
     <div className="space-y-6 p-6">
       <div>
         <h1 className="text-2xl font-bold mb-2">
-          {language === 'nb' ? 'Admin Panel - Dataimport' : 'Admin Panel - Data Import'}
+          {language === 'nb' ? 'Admin Panel - Leverandørkonfigurasjon' : 'Admin Panel - Provider Configuration'}
         </h1>
         <p className="text-gray-600">
           {language === 'nb' 
-            ? 'Administrer scraping av leverandørdata og overvåk jobber'
-            : 'Manage provider data scraping and monitor jobs'}
+            ? 'Administrer leverandørkonfigurasjoner og overvåk systemstatus. Data oppdateres automatisk.'
+            : 'Manage provider configurations and monitor system status. Data is updated automatically.'}
         </p>
       </div>
 
-      {/* Manual Scraping Controls */}
+      {/* System Status */}
       <Card>
         <CardHeader>
-          <CardTitle>Manuell Scraping</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Database size={20} />
+            Systemstatus
+          </CardTitle>
           <CardDescription>
-            Start scraping av leverandørdata for spesifikke kategorier eller alle kategorier
+            Oversikt over systemets funksjonalitet og dataoppbevaring
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3">
-            <Button
-              onClick={() => runScrapingJob()}
-              disabled={isRunningJobs.includes('all')}
-              className="flex items-center gap-2"
-            >
-              {isRunningJobs.includes('all') ? (
-                <RefreshCw size={16} className="animate-spin" />
-              ) : (
-                <Play size={16} />
-              )}
-              Scrape alle kategorier
-            </Button>
-            
-            {categories.map(category => (
-              <Button
-                key={category}
-                onClick={() => runScrapingJob(category)}
-                disabled={isRunningJobs.includes(category)}
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                {isRunningJobs.includes(category) ? (
-                  <RefreshCw size={16} className="animate-spin" />
-                ) : (
-                  <Play size={16} />
-                )}
-                {category}
-              </Button>
-            ))}
-          </div>
-          
-          {/* Show last refresh results */}
-          <div className="mt-4 space-y-2">
-            {Object.entries(lastRefreshResults).map(([key, result]) => (
-              <div key={key} className={`flex items-center gap-2 text-xs px-2 py-1 rounded ${
-                result.success 
-                  ? 'text-green-700 bg-green-50' 
-                  : 'text-red-700 bg-red-50'
-              }`}>
-                {result.success ? (
-                  <CheckCircle size={12} />
-                ) : (
-                  <AlertTriangle size={12} />
-                )}
-                <span>{key}: {result.message}</span>
-                <span className="text-gray-500">
-                  {result.timestamp.toLocaleTimeString('nb-NO', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </span>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle size={16} className="text-green-600" />
+                <span className="font-medium text-green-800">Dataoppbevaring</span>
               </div>
-            ))}
+              <p className="text-sm text-green-700">
+                Statiske data er tilgjengelige for alle kategorier
+              </p>
+            </div>
+            
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <RefreshCw size={16} className="text-blue-600" />
+                <span className="font-medium text-blue-800">Automatisk oppdatering</span>
+              </div>
+              <p className="text-sm text-blue-700">
+                System kjører uten manuell intervensjon
+              </p>
+            </div>
+            
+            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Database size={16} className="text-purple-600" />
+                <span className="font-medium text-purple-800">Leverandører</span>
+              </div>
+              <p className="text-sm text-purple-700">
+                {configs.length} konfigurerte leverandører
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

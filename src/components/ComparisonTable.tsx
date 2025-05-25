@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Provider, ComparisonFilters } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
 import ProviderCard from '@/components/ProviderCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import DataRefreshButton from '@/components/DataRefreshButton';
 import { Button } from '@/components/ui/button';
 import { 
   Select,
@@ -40,10 +40,6 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
   useEffect(() => {
     setProviders(initialProviders);
   }, [initialProviders]);
-
-  const handleDataRefresh = (updatedProviders: Provider[]) => {
-    setProviders(updatedProviders);
-  };
   
   // Filter and sort providers
   const filteredProviders = providers
@@ -104,11 +100,6 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
           </h2>
           
           <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
-            <DataRefreshButton 
-              providers={providers} 
-              onDataRefresh={handleDataRefresh}
-            />
-            
             <Button 
               variant="outline"
               size="sm"
@@ -171,12 +162,21 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
           </div>
         )}
         
-        {/* Provider count */}
-        <p className="text-sm text-gray-600">
-          {language === 'nb' 
-            ? `Viser ${displayedProviders.length} av ${filteredProviders.length} leverandører` 
-            : `Showing ${displayedProviders.length} of ${filteredProviders.length} providers`}
-        </p>
+        {/* Provider count and data update info */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-gray-600">
+            {language === 'nb' 
+              ? `Viser ${displayedProviders.length} av ${filteredProviders.length} leverandører` 
+              : `Showing ${displayedProviders.length} of ${filteredProviders.length} providers`}
+          </p>
+          {providers.length > 0 && (
+            <p className="text-xs text-gray-500">
+              {language === 'nb' 
+                ? 'Data oppdateres automatisk daglig' 
+                : 'Data is updated automatically daily'}
+            </p>
+          )}
+        </div>
         
         {/* Provider grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -187,10 +187,19 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
               </ErrorBoundary>
             ))
           ) : (
-            <div className="col-span-full text-center py-8 text-gray-500">
-              {language === 'nb' 
-                ? 'Ingen leverandører matcher dine filtere. Prøv å justere filtrene.' 
-                : 'No providers match your filters. Try adjusting your filters.'}
+            <div className="col-span-full text-center py-8">
+              <div className="space-y-3">
+                <div className="text-gray-500">
+                  {language === 'nb' 
+                    ? 'Vi jobber med å hente tilbud fra leverandørene.' 
+                    : 'We are working to fetch offers from providers.'}
+                </div>
+                <div className="text-sm text-gray-400">
+                  {language === 'nb' 
+                    ? 'Prøv igjen om litt, eller juster filtrene dine.' 
+                    : 'Try again in a moment, or adjust your filters.'}
+                </div>
+              </div>
             </div>
           )}
         </div>
