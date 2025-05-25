@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { dataValidationService, ValidationResult } from './dataValidationService';
 
 export interface BuifylProduct {
   id: string;
@@ -20,6 +21,7 @@ export interface BuifylProduct {
   is_active: boolean;
   scraped_at: string;
   updated_at: string;
+  validation?: ValidationResult;
 }
 
 // Type guard to ensure category is valid
@@ -64,7 +66,7 @@ const parseFeatures = (features: any): { nb: string[]; en: string[] } => {
 
 export const fetchBuifylProducts = async (category: string): Promise<BuifylProduct[]> => {
   try {
-    console.log(`🔍 Fetching Buifyl products for category: ${category}`);
+    console.log(`🔍 Fetching and validating Buifyl products for category: ${category}`);
     
     const { data, error } = await supabase
       .from('provider_offers')
@@ -78,9 +80,9 @@ export const fetchBuifylProducts = async (category: string): Promise<BuifylProdu
       throw error;
     }
 
-    console.log(`✅ Found ${data?.length || 0} products for ${category}`);
+    console.log(`📦 Raw data from database: ${data?.length || 0} products`);
     
-    // Transform and validate data
+    // Transform data first
     const transformedData = (data || [])
       .filter(item => isValidCategory(item.category))
       .map(item => ({
@@ -101,7 +103,54 @@ export const fetchBuifylProducts = async (category: string): Promise<BuifylProdu
         updated_at: item.updated_at || item.created_at || new Date().toISOString()
       }));
 
-    return transformedData;
+    // Apply validation to each product
+    const validatedProducts = transformedData.map(product => {
+      const validation = dataValidationService.validateProduct(product);
+      return {
+        ...product,
+        validation
+      };
+    });
+
+    // Generate and log quality report
+    const report = dataValidationService.validateBatch(transformedData);
+    dataValidationService.logValidationReport(report, category);
+
+    // Log detailed validation results for debugging
+    console.group(`🔍 Detaljert validering for ${category}`);
+    validatedProducts.forEach(product => {
+      if (!product.validation.isValid || product.validation.confidence < 80) {
+        console.log(`⚠️ ${product.provider_name} - ${product.plan_name}:`, {
+          confidence: product.validation.confidence,
+          errors: product.validation.errors,
+          warnings: product.validation.warnings
+        });
+      }
+    });
+    console.groupEnd();
+
+    // Filter out invalid products - only show quality-assured products
+    const qualityProducts = validatedProducts.filter(product => {
+      // Show only products that pass validation AND have good confidence
+      return product.validation.isValid && product.validation.confidence >= 70;
+    });
+
+    console.log(`✅ Quality-assured products: ${qualityProducts.length}/${transformedData.length}`);
+
+    // Log any products that were filtered out
+    const filteredOut = validatedProducts.filter(product => 
+      !product.validation.isValid || product.validation.confidence < 70
+    );
+    
+    if (filteredOut.length > 0) {
+      console.group(`🚫 Filtrerte bort ${filteredOut.length} produkter:`);
+      filteredOut.forEach(product => {
+        console.log(`- ${product.provider_name} (${product.plan_name}): ${product.validation.errors.join(', ')}`);
+      });
+      console.groupEnd();
+    }
+
+    return qualityProducts;
   } catch (error) {
     console.error(`❌ Error fetching ${category} products:`, error);
     return [];

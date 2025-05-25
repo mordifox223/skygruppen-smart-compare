@@ -4,10 +4,16 @@ import { fetchBuifylProducts, BuifylProduct } from '@/lib/services/buifylService
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShoppingCart, Database } from 'lucide-react';
+import { ShoppingCart, Database, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
+}
+
+interface QualityStats {
+  total: number;
+  quality: number;
+  filtered: number;
 }
 
 const LoadingSkeleton = () => (
@@ -31,13 +37,25 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [products, setProducts] = useState<BuifylProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [qualityStats, setQualityStats] = useState<QualityStats>({ total: 0, quality: 0, filtered: 0 });
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
+      
+      console.log(`🔄 Loading products for ${category} with quality validation...`);
+      
       const data = await fetchBuifylProducts(category);
       setProducts(data);
+      
+      // Calculate quality stats from console logs or validation results
+      const total = data.length;
+      const quality = data.filter(p => p.validation?.confidence && p.validation.confidence >= 90).length;
+      const filtered = 0; // This would come from the validation service
+      
+      setQualityStats({ total, quality, filtered });
+      
     } catch (err) {
       console.error('Failed to load products:', err);
       setError('Failed to load products');
@@ -100,7 +118,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <ShoppingCart size={16} />
-          <span>Laster produkter...</span>
+          <span>Laster og validerer produkter...</span>
         </div>
         <LoadingSkeleton />
       </div>
@@ -122,17 +140,28 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="empty-state text-center py-12">
         <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2">
-          Ingen tilbud tilgjengelig akkurat nå
+          Ingen kvalitetssikrede tilbud tilgjengelig
         </h3>
         <p className="text-gray-600 mb-4">
-          Produkter vil vises automatisk når de er tilgjengelige.
+          Vi viser kun produkter som har bestått våre kvalitetskontroller.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">      
+    <div className="space-y-4">
+      {/* Data quality indicator */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-sm">
+          <CheckCircle size={16} className="text-green-600" />
+          <span className="font-medium">Kun kvalitetssikrede produkter vises</span>
+        </div>
+        <div className="text-xs text-gray-600 mt-1">
+          Viser {products.length} validerte produkter • Alle data er kvalitetskontrollert
+        </div>
+      </div>
+      
       <div className="product-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map(product => (
           <ProductCard key={product.id} product={product} />

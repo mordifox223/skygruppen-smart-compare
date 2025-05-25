@@ -2,7 +2,7 @@
 import React from 'react';
 import { BuifylProduct, logAffiliateClick } from '@/lib/services/buifylService';
 import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -21,11 +21,54 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     }
   };
 
+  // Show data quality indicator if validation exists
+  const showQualityIndicator = product.validation && (
+    product.validation.confidence < 90 || product.validation.warnings.length > 0
+  );
+
+  const getQualityColor = (confidence: number) => {
+    if (confidence >= 90) return 'text-green-600 bg-green-50 border-green-200';
+    if (confidence >= 80) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    return 'text-orange-600 bg-orange-50 border-orange-200';
+  };
+
+  const getDataAge = (scrapedAt: string) => {
+    const scrapedDate = new Date(scrapedAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - scrapedDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const dataAge = getDataAge(product.scraped_at);
+
   return (
     <article 
       className="product-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow"
       aria-labelledby={`product-${product.id}-title`}
     >
+      {/* Data quality indicator */}
+      {showQualityIndicator && product.validation && (
+        <div className={cn(
+          "mb-3 p-2 rounded text-xs border",
+          getQualityColor(product.validation.confidence)
+        )}>
+          <div className="flex items-center">
+            {product.validation.confidence >= 80 ? (
+              <CheckCircle size={12} className="mr-1" />
+            ) : (
+              <AlertTriangle size={12} className="mr-1" />
+            )}
+            <span>Datakvalitet: {product.validation.confidence}%</span>
+          </div>
+          {product.validation.warnings.length > 0 && (
+            <div className="mt-1 text-xs opacity-75">
+              {product.validation.warnings[0]}
+            </div>
+          )}
+        </div>
+      )}
+
       <header className="card-header mb-4">
         <h3 
           id={`product-${product.id}-title`}
@@ -82,6 +125,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           Velg abonnement
           <ExternalLink size={16} />
         </Button>
+
+        {/* Show data age if older than 3 days */}
+        {dataAge > 3 && (
+          <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
+            <Clock size={12} className="mr-1" />
+            Oppdatert for {dataAge} dager siden
+          </div>
+        )}
       </footer>
     </article>
   );
