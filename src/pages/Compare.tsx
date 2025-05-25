@@ -10,9 +10,24 @@ import ComparisonTable from '@/components/ComparisonTable';
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
   const { language } = useLanguage();
-  const providers = getMockProviders(categoryId);
+  
+  // Try to get real data first, fallback to mock data
+  const { data: realProviders, isLoading: realLoading, error: realError } = useProviderOffers(categoryId);
+  const mockProviders = getMockProviders(categoryId);
   const categories = getAvailableCategories();
   const category = categories.find(c => c.id === categoryId);
+  
+  console.log('Real providers:', realProviders, 'Error:', realError);
+  
+  // Use real data if available, otherwise fallback to mock data
+  const providers = React.useMemo(() => {
+    if (realProviders && realProviders.length > 0) {
+      return realProviders.map(convertToLegacyProvider);
+    }
+    return mockProviders;
+  }, [realProviders, mockProviders]);
+
+  const dataSource = realProviders && realProviders.length > 0 ? 'real' : 'mock';
   
   if (!category) {
     return (
@@ -37,9 +52,26 @@ const Compare = () => {
           <div className="container mx-auto px-4">
             <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
             <p className="text-gray-300">{category.description[language]}</p>
-            <p className="mt-2 text-sm text-gray-400">
-              {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
-            </p>
+            <div className="flex items-center gap-4 mt-2">
+              <p className="text-sm text-gray-400">
+                {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+              </p>
+              {dataSource === 'real' && (
+                <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">
+                  {language === 'nb' ? 'Sanntidsdata' : 'Real-time data'}
+                </span>
+              )}
+              {dataSource === 'mock' && (
+                <span className="bg-yellow-600 text-white text-xs px-2 py-1 rounded">
+                  {language === 'nb' ? 'Demo data' : 'Demo data'}
+                </span>
+              )}
+              {realLoading && (
+                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded animate-pulse">
+                  {language === 'nb' ? 'Laster...' : 'Loading...'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         
@@ -68,9 +100,15 @@ const Compare = () => {
                   {language === 'nb' ? 'Om dataene' : 'About the data'}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {language === 'nb' 
-                    ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Data oppdateres daglig for å sikre nøyaktighet.` 
-                    : `We compare prices and services from ${providers.length} providers. Data is updated daily to ensure accuracy.`}
+                  {dataSource === 'real' ? (
+                    language === 'nb' 
+                      ? `Vi viser sanntidsdata fra ${providers.length} leverandører. Data oppdateres daglig for å sikre nøyaktighet.` 
+                      : `We show real-time data from ${providers.length} providers. Data is updated daily to ensure accuracy.`
+                  ) : (
+                    language === 'nb' 
+                      ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Dette er demo-data.` 
+                      : `We compare prices and services from ${providers.length} providers. This is demo data.`
+                  )}
                 </p>
               </div>
             </div>

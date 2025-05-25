@@ -9,7 +9,186 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      admin_users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          is_active: boolean | null
+          role: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          is_active?: boolean | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          is_active?: boolean | null
+          role?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      provider_configs: {
+        Row: {
+          api_config: Json | null
+          category: string
+          consecutive_failures: number | null
+          created_at: string | null
+          id: string
+          is_enabled: boolean | null
+          last_successful_scrape: string | null
+          provider_name: string
+          scrape_frequency: string | null
+          scrape_method: string | null
+          scrape_url: string
+          selectors: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_config?: Json | null
+          category: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_successful_scrape?: string | null
+          provider_name: string
+          scrape_frequency?: string | null
+          scrape_method?: string | null
+          scrape_url: string
+          selectors?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_config?: Json | null
+          category?: string
+          consecutive_failures?: number | null
+          created_at?: string | null
+          id?: string
+          is_enabled?: boolean | null
+          last_successful_scrape?: string | null
+          provider_name?: string
+          scrape_frequency?: string | null
+          scrape_method?: string | null
+          scrape_url?: string
+          selectors?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      provider_offers: {
+        Row: {
+          category: string
+          contract_length: string | null
+          created_at: string | null
+          data_allowance: string | null
+          data_source: string | null
+          direct_link: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          last_scraped: string | null
+          last_updated: string | null
+          logo_url: string | null
+          monthly_price: number
+          offer_url: string
+          plan_name: string
+          provider_name: string
+          scrape_attempts: number | null
+          scrape_errors: Json | null
+          speed: string | null
+        }
+        Insert: {
+          category: string
+          contract_length?: string | null
+          created_at?: string | null
+          data_allowance?: string | null
+          data_source?: string | null
+          direct_link?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_scraped?: string | null
+          last_updated?: string | null
+          logo_url?: string | null
+          monthly_price: number
+          offer_url: string
+          plan_name: string
+          provider_name: string
+          scrape_attempts?: number | null
+          scrape_errors?: Json | null
+          speed?: string | null
+        }
+        Update: {
+          category?: string
+          contract_length?: string | null
+          created_at?: string | null
+          data_allowance?: string | null
+          data_source?: string | null
+          direct_link?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          last_scraped?: string | null
+          last_updated?: string | null
+          logo_url?: string | null
+          monthly_price?: number
+          offer_url?: string
+          plan_name?: string
+          provider_name?: string
+          scrape_attempts?: number | null
+          scrape_errors?: Json | null
+          speed?: string | null
+        }
+        Relationships: []
+      }
+      scraping_jobs: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          provider_name: string
+          results_count: number | null
+          started_at: string | null
+          status: string | null
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          provider_name: string
+          results_count?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          provider_name?: string
+          results_count?: number | null
+          started_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
