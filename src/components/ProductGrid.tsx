@@ -40,7 +40,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       setProducts(data);
     } catch (err) {
       console.error('Failed to load products:', err);
-      setError('Failed to load products from Buifyl Shop');
+      setError('Failed to load products');
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <ShoppingCart size={16} />
-          <span>Loading products from Buifyl Shop...</span>
+          <span>Laster produkter...</span>
         </div>
         <LoadingSkeleton />
       </div>
@@ -111,7 +111,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     return (
       <div className="text-center py-12">
         <Database size={48} className="mx-auto text-red-400 mb-4" />
-        <h3 className="text-xl font-semibold mb-2 text-red-600">Connection Error</h3>
+        <h3 className="text-xl font-semibold mb-2 text-red-600">Tilkoblingsfeil</h3>
         <p className="text-gray-600 mb-4">{error}</p>
       </div>
     );
@@ -125,19 +125,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
           Ingen tilbud tilgjengelig akkurat nå
         </h3>
         <p className="text-gray-600 mb-4">
-          Produkter vil vises automatisk når de er tilgjengelige via Buifyl Shop.
+          Produkter vil vises automatisk når de er tilgjengelige.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-green-600">
-        <ShoppingCart size={16} />
-        <span>{products.length} produkter fra Buifyl Shop</span>
-      </div>
-      
+    <div className="space-y-4">      
       <div className="product-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map(product => (
           <ProductCard key={product.id} product={product} />
