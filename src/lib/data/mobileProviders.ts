@@ -132,7 +132,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
     },
     url: 'https://happybytes.no',
-    offerUrl: 'https://happybytes.no/partner/mobilabonnement_pp/',
+    offerUrl: 'https://happybytes.no/abonnement/smart-5gb',
     lastUpdated: new Date()
   },
   {
