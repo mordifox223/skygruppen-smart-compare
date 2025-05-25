@@ -23,6 +23,8 @@ export interface Provider {
   offerUrl: string;
   lastUpdated: Date;
   isValidData?: boolean;
+  validationStatus?: string;
+  hasSpecificOffer?: boolean;
 }
 
 export interface ProviderData {
@@ -48,6 +50,7 @@ export interface AffiliateClick {
   user_agent: string;
   referrer: string;
   timestamp: Date;
+  target_url?: string;
 }
 
 export interface ErrorLog {
