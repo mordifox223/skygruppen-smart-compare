@@ -41,6 +41,18 @@ serve(async (req) => {
   }
 
   try {
+    const { action } = await req.json().catch(() => ({ action: 'scrape_all' }));
+
+    if (action === 'health_check') {
+      return new Response(JSON.stringify({ 
+        status: "healthy",
+        timestamp: new Date().toISOString(),
+        project: "odemfyuwaasfhtpnkhei"
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -186,34 +198,6 @@ async function scrapeTelenorEnhanced(): Promise<ScrapedOffer[]> {
     const html = await response.text();
     const offers: ScrapedOffer[] = [];
     
-    // Enhanced parsing with multiple patterns
-    const pricePatterns = [
-      /(\d+)\s*kr[\/\s]*m[aå]ned/gi,
-      /(\d+)\s*,-\s*kr/gi,
-      /kr\s*(\d+)/gi
-    ];
-    
-    const planPatterns = [
-      /Smart\s+(\d+GB|Unlimited|Ubegrenset)/gi,
-      /Telenor\s+(\w+)/gi,
-      /(Smart|Plus|Basis)\s*(\d+)?/gi
-    ];
-    
-    let allPrices: string[] = [];
-    let allPlans: string[] = [];
-    
-    // Extract all price matches
-    pricePatterns.forEach(pattern => {
-      const matches = html.match(pattern) || [];
-      allPrices.push(...matches);
-    });
-    
-    // Extract all plan matches
-    planPatterns.forEach(pattern => {
-      const matches = html.match(pattern) || [];
-      allPlans.push(...matches);
-    });
-    
     // Create realistic offers
     const telenorPlans = [
       { name: 'Telenor Smart 15GB', price: 299, data: '15GB' },
@@ -279,7 +263,7 @@ async function scrapeTeliaEnhanced(): Promise<ScrapedOffer[]> {
         offer_url: 'https://www.telia.no/mobilabonnement/',
         features: {
           nb: [`${plan.data} data`, '5G-nettverk', 'Fri ringetid', 'Roaming i EU', 'Telia-kvalitet'],
-          en: [`${plan.data} data`, '5G network', 'Unlimited calls', 'EU roaming', 'Telia quality`]
+          en: [`${plan.data} data`, '5G network', 'Unlimited calls', 'EU roaming', 'Telia quality']
         },
         data_allowance: plan.data,
         speed: '5G',
@@ -320,7 +304,7 @@ async function scrapeIceEnhanced(): Promise<ScrapedOffer[]> {
         offer_url: 'https://www.ice.no/abonnement/',
         features: {
           nb: [`${plan.data} data`, 'Rollover data', 'EU roaming', 'Ingen binding', '4G+'],
-          en: [`${plan.data} data`, 'Data rollover', 'EU roaming', 'No binding', '4G+`]
+          en: [`${plan.data} data`, 'Data rollover', 'EU roaming', 'No binding', '4G+']
         },
         data_allowance: plan.data,
         speed: '4G+',
