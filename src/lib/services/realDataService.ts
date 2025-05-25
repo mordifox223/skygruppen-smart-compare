@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
+import { UniversalUrlMapper } from './urlMapper/urlMapper';
 import type { Json } from '@/integrations/supabase/types';
 
 export interface ProviderOffer {
@@ -105,31 +105,27 @@ class RealDataService {
   }
 
   private buildEnhancedAffiliateUrl(offer: any): string {
-    // Priority: manual_override_url > direct_link > offer_url > source_url
-    let baseUrl = offer.manual_override_url || offer.direct_link || offer.offer_url || offer.source_url;
-    
     try {
-      const url = new URL(baseUrl);
+      // Bruk den nye UniversalUrlMapper
+      const productInfo = {
+        id: offer.id,
+        name: offer.plan_name || offer.provider_name,
+        provider_name: offer.provider_name,
+        category: offer.category,
+        plan_name: offer.plan_name,
+        productId: offer.product_id,
+        slug: offer.slug,
+        offer_url: offer.offer_url,
+        direct_link: offer.direct_link,
+        source_url: offer.source_url
+      };
       
-      // Enhanced tracking parameters for better analytics
-      url.searchParams.set('utm_source', 'skygruppen');
-      url.searchParams.set('utm_medium', 'comparison');
-      url.searchParams.set('utm_campaign', offer.category);
-      url.searchParams.set('utm_content', offer.provider_name);
-      url.searchParams.set('utm_term', offer.id);
-      
-      // Add affiliate tracking
-      url.searchParams.set('ref', 'skycompare');
-      url.searchParams.set('partner_id', 'skygruppen');
-      
-      // Add timestamp for unique tracking
-      url.searchParams.set('click_id', `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
-      
-      console.log(`✅ Built enhanced affiliate URL for ${offer.provider_name}`);
-      return url.toString();
+      const enhancedUrl = UniversalUrlMapper.generateRedirectUrl(productInfo);
+      console.log(`🔗 Built enhanced URL for ${offer.provider_name}: ${enhancedUrl}`);
+      return enhancedUrl;
     } catch (error) {
       console.error(`Failed to build URL for ${offer.provider_name}:`, error);
-      return baseUrl;
+      return offer.manual_override_url || offer.direct_link || offer.offer_url || offer.source_url;
     }
   }
 
@@ -235,11 +231,11 @@ class RealDataService {
 
   async getScrapingJobs(limit = 10): Promise<ScrapingJob[]> {
     try {
-      // Use a direct fetch to handle the fact that TypeScript types haven't been regenerated yet
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
+      // Use a direct fetch to handle the scraping_jobs table
+      const response = await fetch(`https://odemfyuwaasfhtpnkhei.supabase.co/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
         headers: {
-          'apikey': supabase.supabaseKey,
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kZW1meXV3YWFzZmh0cG5raGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjEzMjEsImV4cCI6MjA2MzM5NzMyMX0.4ENgLVH543zNpaea295oDXNioIU4v0YPU17csJSel74',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kZW1meXV3YWFzZmh0cG5raGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjEzMjEsImV4cCI6MjA2MzM5NzMyMX0.4ENgLVH543zNpaea295oDXNioIU4v0YPU17csJSel74`,
           'Content-Type': 'application/json'
         }
       });

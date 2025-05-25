@@ -1,10 +1,10 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 import { BuifylOffer } from './types';
 import { BuifylTransformer } from './transformer';
 import { BuifylSystemMonitor } from './systemMonitor';
 import { BuifylAffiliateTracker } from './affiliateTracker';
+import { UniversalUrlMapper } from '../urlMapper/urlMapper';
 
 export class BuifylDataService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -14,7 +14,7 @@ export class BuifylDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      console.log(`🔍 Getting providers for ${category} from Buifyl Shop - no fallbacks`);
+      console.log(`🔍 Getting providers for ${category} from Buifyl Shop with enhanced URL mapping`);
       
       const cached = this.cache.get(category);
       if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
@@ -61,7 +61,8 @@ export class BuifylDataService {
         return [];
       }
 
-      const providers = BuifylTransformer.transformOffersToProviders(offers as BuifylOffer[]);
+      // Transform offers to providers with enhanced URL mapping
+      const providers = this.transformOffersToProviders(offers as BuifylOffer[]);
       
       this.cache.set(category, { data: providers, timestamp: Date.now() });
       
@@ -72,6 +73,42 @@ export class BuifylDataService {
       console.error(`💥 Unexpected error fetching from Buifyl Shop for ${category}:`, error);
       return [];
     }
+  }
+
+  private transformOffersToProviders(offers: BuifylOffer[]): Provider[] {
+    return offers.map(offer => {
+      // Use UniversalUrlMapper for enhanced URL generation
+      const productInfo = {
+        id: offer.id,
+        name: offer.plan_name || offer.provider_name,
+        provider_name: offer.provider_name,
+        category: offer.category,
+        plan_name: offer.plan_name,
+        productId: offer.product_id,
+        slug: offer.slug,
+        offer_url: offer.offer_url,
+        direct_link: offer.direct_link,
+        source_url: offer.source_url
+      };
+
+      const enhancedOfferUrl = UniversalUrlMapper.generateRedirectUrl(productInfo);
+
+      return {
+        id: offer.id,
+        name: offer.provider_name,
+        category: offer.category as any,
+        logo: offer.logo_url || BuifylTransformer.getDefaultLogo(offer.provider_name),
+        price: offer.monthly_price,
+        priceLabel: BuifylTransformer.getPriceLabel(offer.category),
+        rating: BuifylTransformer.estimateRating(offer.provider_name),
+        features: BuifylTransformer.transformFeatures(offer),
+        url: offer.source_url,
+        offerUrl: enhancedOfferUrl,
+        lastUpdated: new Date(offer.scraped_at),
+        isValidData: BuifylTransformer.isDataFresh(offer.scraped_at),
+        hasSpecificOffer: BuifylTransformer.hasSpecificOfferUrl(offer)
+      };
+    });
   }
 
   async validateAffiliateUrls(category: string) {

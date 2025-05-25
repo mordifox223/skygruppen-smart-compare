@@ -92,29 +92,21 @@ export class BuifylSystemMonitor {
 
   private async getScrapingJobs(limit = 10): Promise<any[]> {
     try {
-      // Use a raw query to handle the fact that TypeScript types haven't been regenerated yet
-      const { data, error } = await supabase
-        .rpc('get_scraping_jobs', { job_limit: limit })
-        .single();
-      
-      // If the RPC function doesn't exist, fall back to direct table query
-      if (error && error.code === '42883') {
-        // Direct table query as fallback
-        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
-          headers: {
-            'apikey': supabase.supabaseKey,
-            'Authorization': `Bearer ${supabase.supabaseKey}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          return data || [];
+      // Use direct fetch with hardcoded URLs to avoid protected property issues
+      const response = await fetch(`https://odemfyuwaasfhtpnkhei.supabase.co/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
+        headers: {
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kZW1meXV3YWFzZmh0cG5raGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjEzMjEsImV4cCI6MjA2MzM5NzMyMX0.4ENgLVH543zNpaea295oDXNioIU4v0YPU17csJSel74',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kZW1meXV3YWFzZmh0cG5raGVpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc4MjEzMjEsImV4cCI6MjA2MzM5NzMyMX0.4ENgLVH543zNpaea295oDXNioIU4v0YPU17csJSel74`,
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        return data || [];
       }
       
-      return data || [];
+      return [];
     } catch (error) {
       console.error('Error fetching scraping jobs:', error);
       return [];
