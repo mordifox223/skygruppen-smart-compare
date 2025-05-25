@@ -81,8 +81,9 @@ export class UrlUpdater {
           provider_name: offer.provider_name,
           category: offer.category,
           plan_name: offer.plan_name,
-          productId: offer.product_id,
-          slug: offer.slug,
+          // Handle missing properties safely
+          productId: undefined, // Not available in current schema
+          slug: undefined, // Not available in current schema
           offer_url: offer.offer_url,
           direct_link: offer.direct_link,
           source_url: offer.source_url
