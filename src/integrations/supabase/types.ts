@@ -36,6 +36,45 @@ export type Database = {
         }
         Relationships: []
       }
+      affiliate_clicks: {
+        Row: {
+          category: string
+          created_at: string | null
+          id: string
+          ip_address: unknown | null
+          provider_id: string
+          provider_name: string
+          referrer: string | null
+          timestamp: string | null
+          url: string
+          user_agent: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          provider_id: string
+          provider_name: string
+          referrer?: string | null
+          timestamp?: string | null
+          url: string
+          user_agent?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown | null
+          provider_id?: string
+          provider_name?: string
+          referrer?: string | null
+          timestamp?: string | null
+          url?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       data_sources: {
         Row: {
           api_endpoint: string | null

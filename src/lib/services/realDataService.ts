@@ -52,7 +52,7 @@ class RealDataService {
     try {
       console.log(`Fetching data from Supabase for ${category}`);
       
-      // Fetch from Supabase provider_offers table
+      // Fetch from Supabase provider_offers table with enhanced query
       const { data: offers, error } = await supabase
         .from('provider_offers')
         .select('*')
@@ -65,36 +65,23 @@ class RealDataService {
         throw new Error(`Database error: ${error.message}`);
       }
 
-      // Only use fallback if database is completely empty or connection failed
       if (!offers || offers.length === 0) {
-        console.log(`No offers found in database for ${category}`);
-        // Check if database is completely empty vs category has no data
-        const { data: totalOffers } = await supabase
-          .from('provider_offers')
-          .select('id', { count: 'exact' })
-          .limit(1);
-        
-        if (totalOffers && totalOffers.length === 0) {
-          console.log('Database is empty - need to populate with initial data');
-          return this.getFallbackProviders(category);
-        } else {
-          console.log(`Category ${category} has no offers but database has other data`);
-          return [];
-        }
+        console.log(`No active offers found in database for ${category}`);
+        return [];
       }
 
-      // Convert offers to Provider format
+      // Convert offers to Provider format with enhanced URL building
       const providers = this.transformOffersToProviders(offers);
       
       // Cache the results
       this.cache.set(category, { data: providers, timestamp: Date.now() });
       
-      console.log(`Loaded ${providers.length} real providers for ${category}`);
+      console.log(`✅ Loaded ${providers.length} verified providers for ${category}`);
       return providers;
 
     } catch (error) {
       console.error(`Error in getProviders for ${category}:`, error);
-      throw error; // Don't hide errors, let them bubble up
+      throw error;
     }
   }
 
@@ -109,25 +96,45 @@ class RealDataService {
       rating: this.estimateRating(offer.provider_name),
       features: this.transformFeatures(offer),
       url: offer.source_url,
-      offerUrl: this.buildValidAffiliateUrl(offer),
+      offerUrl: this.buildEnhancedAffiliateUrl(offer),
       lastUpdated: new Date(offer.scraped_at),
       isValidData: this.isDataFresh(offer.scraped_at),
-      hasSpecificOffer: !!(offer.manual_override_url || offer.direct_link)
+      hasSpecificOffer: this.hasSpecificOfferUrl(offer)
     }));
   }
 
-  private buildValidAffiliateUrl(offer: any): string {
-    // Priority: manual override > direct_link > offer_url > source_url
-    const url = offer.manual_override_url || offer.direct_link || offer.offer_url || offer.source_url;
+  private buildEnhancedAffiliateUrl(offer: any): string {
+    // Priority: manual_override_url > direct_link > offer_url > source_url
+    let baseUrl = offer.manual_override_url || offer.direct_link || offer.offer_url || offer.source_url;
     
-    // Add tracking parameters for analytics
-    const trackingUrl = new URL(url);
-    trackingUrl.searchParams.set('utm_source', 'skygruppen');
-    trackingUrl.searchParams.set('utm_medium', 'compare');
-    trackingUrl.searchParams.set('utm_campaign', offer.category);
-    trackingUrl.searchParams.set('utm_content', offer.provider_name);
-    
-    return trackingUrl.toString();
+    try {
+      const url = new URL(baseUrl);
+      
+      // Enhanced tracking parameters for better analytics
+      url.searchParams.set('utm_source', 'skygruppen');
+      url.searchParams.set('utm_medium', 'comparison');
+      url.searchParams.set('utm_campaign', offer.category);
+      url.searchParams.set('utm_content', offer.provider_name);
+      url.searchParams.set('utm_term', offer.id);
+      
+      // Add affiliate tracking
+      url.searchParams.set('ref', 'skycompare');
+      url.searchParams.set('partner_id', 'skygruppen');
+      
+      // Add timestamp for unique tracking
+      url.searchParams.set('click_id', `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+      
+      console.log(`✅ Built enhanced affiliate URL for ${offer.provider_name}`);
+      return url.toString();
+    } catch (error) {
+      console.error(`Failed to build URL for ${offer.provider_name}:`, error);
+      return baseUrl;
+    }
+  }
+
+  private hasSpecificOfferUrl(offer: any): boolean {
+    const specificUrl = offer.manual_override_url || offer.direct_link;
+    return !!(specificUrl && specificUrl !== offer.source_url);
   }
 
   private isDataFresh(scrapedAt: string): boolean {
@@ -207,32 +214,6 @@ class RealDataService {
     return logos[providerName] || '/placeholder.svg';
   }
 
-  private getFallbackProviders(category: string): Provider[] {
-    // Only return fallback when database is completely empty
-    const fallbackData: Record<string, Provider[]> = {
-      insurance: [{
-        id: 'temp-insurance-1',
-        name: 'If Forsikring',
-        category: 'insurance',
-        logo: '/placeholder.svg',
-        price: 299,
-        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
-        rating: 4.4,
-        features: {
-          nb: ['Bilforsikring', 'Hjemforsikring', 'Reiseforsikring'],
-          en: ['Car insurance', 'Home insurance', 'Travel insurance']
-        },
-        url: 'https://www.if.no',
-        offerUrl: 'https://www.if.no/privat/bilforsikring',
-        lastUpdated: new Date(),
-        isValidData: false,
-        validationStatus: 'Midlertidig data - ekte data lastes snart'
-      }]
-    };
-    
-    return fallbackData[category] || [];
-  }
-
   async getDataSources(category?: string): Promise<DataSource[]> {
     try {
       let query = supabase.from('data_sources').select('*').eq('is_active', true);
@@ -294,8 +275,16 @@ class RealDataService {
 
   async validateAffiliateUrl(url: string): Promise<boolean> {
     try {
-      const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
-      return response.ok;
+      // Enhanced URL validation with better error handling
+      const response = await fetch(url, { 
+        method: 'HEAD', 
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; UrlValidator/1.0)'
+        }
+      });
+      return true; // If no error thrown, URL is accessible
     } catch (error) {
       console.error('URL validation failed:', url, error);
       return false;

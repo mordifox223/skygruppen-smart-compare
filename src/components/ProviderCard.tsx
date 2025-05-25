@@ -3,7 +3,7 @@ import React from 'react';
 import { Provider } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
 import { Button } from '@/components/ui/button';
-import { Star, ExternalLink, CheckCircle } from 'lucide-react';
+import { Star, ExternalLink, CheckCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
 import { providerDataService } from '@/lib/services/providerDataService';
@@ -17,7 +17,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   
   const handleProviderClick = async () => {
     try {
-      // Log the click for analytics in Supabase
+      // Enhanced affiliate click logging
       await providerDataService.logAffiliateClick(
         provider.id, 
         provider.name, 
@@ -25,7 +25,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         provider.offerUrl
       );
       
-      console.log(`Opening ${provider.name} offer:`, provider.offerUrl);
+      console.log(`🔗 Opening ${provider.name} offer:`, provider.offerUrl);
       
       // Open in new tab with proper security
       window.open(provider.offerUrl, '_blank', 'noopener,noreferrer');
@@ -64,19 +64,11 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   // Check if provider has specific offer URL
   const hasSpecificOffer = provider.hasSpecificOffer;
   
-  // Only show outdated warning if data is actually old (not just fallback)
-  const showOutdatedWarning = provider.isValidData === false && provider.validationStatus?.includes('utdatert');
+  // Only show data freshness info for real data
+  const showDataFreshness = provider.lastUpdated && provider.isValidData !== false;
   
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
-      {/* Only show warnings for actual data issues, not fallback data */}
-      {showOutdatedWarning && (
-        <div className="mb-2">
-          <div className="p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-            {provider.validationStatus}
-          </div>
-        </div>
-      )}
       
       {/* Show offer type indicator */}
       {hasSpecificOffer && (
@@ -132,9 +124,10 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         <ExternalLink size={16} />
       </Button>
       
-      {/* Last updated info - only show for real data */}
-      {provider.lastUpdated && provider.isValidData !== false && (
-        <div className="mt-2 text-xs text-gray-500 text-center">
+      {/* Enhanced last updated info */}
+      {showDataFreshness && (
+        <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
+          <Clock size={12} className="mr-1" />
           {language === 'nb' ? 'Oppdatert' : 'Updated'}: {new Date(provider.lastUpdated).toLocaleDateString('nb-NO')}
         </div>
       )}
