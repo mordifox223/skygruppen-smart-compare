@@ -154,8 +154,7 @@ class ProviderDataService {
   // Enhanced affiliate click logging with proper error handling
   async logAffiliateClick(providerId: string, providerName: string, category: string, targetUrl: string): Promise<void> {
     try {
-      // Use type assertion to handle the TypeScript issue temporarily
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('affiliate_clicks')
         .insert({
           provider_id: providerId,
@@ -177,8 +176,8 @@ class ProviderDataService {
         });
         
         // Also trigger Google Analytics event if available
-        if (typeof gtag !== 'undefined') {
-          gtag('event', 'affiliate_click', {
+        if (typeof window !== 'undefined' && (window as any).gtag) {
+          (window as any).gtag('event', 'affiliate_click', {
             event_category: 'engagement',
             event_label: providerName,
             custom_parameter_1: category,
