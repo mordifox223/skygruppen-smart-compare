@@ -9,18 +9,30 @@ class ProviderDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      console.log(`Getting providers for ${category} using database only`);
+      console.log(`Getting providers for ${category} - database only, no fallbacks`);
       
-      // Only get real data from Supabase - no fallbacks to static data
+      // Check cache first
+      const cached = this.cache.get(category);
+      if (cached && (Date.now() - cached.timestamp) < this.cacheTimeout) {
+        console.log(`Using cached data for ${category}: ${cached.data.length} providers`);
+        return cached.data;
+      }
+      
+      // Only get real data from Supabase - no fallbacks at all
       const realProviders = await realDataService.getProviders(category);
       
       if (realProviders.length > 0) {
-        console.log(`Using real data for ${category}: ${realProviders.length} providers`);
-        return this.enhanceProvidersWithValidation(realProviders);
+        console.log(`Using database data for ${category}: ${realProviders.length} providers`);
+        const enhancedProviders = this.enhanceProvidersWithValidation(realProviders);
+        
+        // Cache the results
+        this.cache.set(category, { data: enhancedProviders, timestamp: Date.now() });
+        
+        return enhancedProviders;
       }
       
-      // If no data in database, return empty array
-      console.log(`No data found for ${category} in database`);
+      // If no data in database, return empty array - no fallbacks
+      console.log(`No scraped data found for ${category} in database`);
       return [];
 
     } catch (error) {
@@ -29,7 +41,7 @@ class ProviderDataService {
     }
   }
 
-  private async enhanceProvidersWithValidation(providers: Provider[]): Promise<Provider[]> {
+  private enhanceProvidersWithValidation(providers: Provider[]): Provider[] {
     return providers.map(provider => {
       // Check if data is fresh (within 48 hours)
       const hoursSinceUpdate = provider.lastUpdated 
@@ -45,27 +57,6 @@ class ProviderDataService {
         hasSpecificOffer: !!(provider.offerUrl && provider.offerUrl !== provider.url)
       };
     });
-  }
-
-  async triggerScraping(category?: string): Promise<any> {
-    try {
-      console.log(`Triggering data update for category: ${category || 'all'}`);
-      
-      const result = await realDataService.triggerDataUpdate(category);
-
-      // Clear cache to force refresh
-      if (category) {
-        this.cache.delete(category);
-      } else {
-        this.cache.clear();
-      }
-
-      console.log('Data update result:', result);
-      return result;
-    } catch (error) {
-      console.error('Failed to trigger data update:', error);
-      throw error;
-    }
   }
 
   async getSystemStatus(): Promise<any> {

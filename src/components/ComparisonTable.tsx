@@ -17,7 +17,7 @@ import {
 import {
   Slider
 } from '@/components/ui/slider';
-import { ArrowDown, ArrowUp, Filter, Star } from 'lucide-react';
+import { ArrowDown, ArrowUp, Filter, Star, Zap } from 'lucide-react';
 
 interface ComparisonTableProps {
   providers: Provider[];
@@ -96,50 +96,52 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
           <h2 className="text-2xl font-bold">
-            {language === 'nb' ? 'Sammenlign leverandører' : 'Compare providers'}
+            {language === 'nb' ? 'Sammenlign tilbud' : 'Compare offers'}
           </h2>
           
-          <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
-            <Button 
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-1"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter size={16} />
-              <span>{language === 'nb' ? 'Filtrer' : 'Filter'}</span>
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <Select
-                value={filters.sortBy}
-                onValueChange={handleSortChange}
-              >
-                <SelectTrigger className="w-32 bg-white">
-                  <SelectValue placeholder={language === 'nb' ? 'Sorter etter' : 'Sort by'} />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
-                  <SelectGroup>
-                    <SelectItem value="price">{language === 'nb' ? 'Pris' : 'Price'}</SelectItem>
-                    <SelectItem value="rating">{language === 'nb' ? 'Vurdering' : 'Rating'}</SelectItem>
-                    <SelectItem value="name">{language === 'nb' ? 'Navn' : 'Name'}</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              
+          {providers.length > 0 && (
+            <div className="flex flex-wrap gap-2 md:gap-4 w-full md:w-auto">
               <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={toggleSortDirection}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-1"
+                onClick={() => setShowFilters(!showFilters)}
               >
-                {filters.sortDirection === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
+                <Filter size={16} />
+                <span>{language === 'nb' ? 'Filtrer' : 'Filter'}</span>
               </Button>
+              
+              <div className="flex items-center gap-2">
+                <Select
+                  value={filters.sortBy}
+                  onValueChange={handleSortChange}
+                >
+                  <SelectTrigger className="w-32 bg-white">
+                    <SelectValue placeholder={language === 'nb' ? 'Sorter etter' : 'Sort by'} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border border-gray-200 shadow-lg z-50">
+                    <SelectGroup>
+                      <SelectItem value="price">{language === 'nb' ? 'Pris' : 'Price'}</SelectItem>
+                      <SelectItem value="rating">{language === 'nb' ? 'Vurdering' : 'Rating'}</SelectItem>
+                      <SelectItem value="name">{language === 'nb' ? 'Navn' : 'Name'}</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={toggleSortDirection}
+                >
+                  {filters.sortDirection === 'asc' ? <ArrowUp size={18} /> : <ArrowDown size={18} />}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         
         {/* Filter panel */}
-        {showFilters && (
+        {showFilters && providers.length > 0 && (
           <div className="bg-gray-50 p-4 rounded-lg animate-fade-in">
             <div className="mb-2">
               <label className="text-sm font-medium mb-1 block">
@@ -163,20 +165,26 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
         )}
         
         {/* Provider count and data update info */}
-        <div className="flex flex-col gap-2">
-          <p className="text-sm text-gray-600">
-            {language === 'nb' 
-              ? `Viser ${displayedProviders.length} av ${filteredProviders.length} leverandører` 
-              : `Showing ${displayedProviders.length} of ${filteredProviders.length} providers`}
-          </p>
-          {providers.length > 0 && (
+        {providers.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-4">
+              <p className="text-sm text-gray-600">
+                {language === 'nb' 
+                  ? `Viser ${displayedProviders.length} av ${filteredProviders.length} tilbud` 
+                  : `Showing ${displayedProviders.length} of ${filteredProviders.length} offers`}
+              </p>
+              <div className="flex items-center text-green-600 text-xs">
+                <Zap size={12} className="mr-1" />
+                {language === 'nb' ? 'Live data' : 'Live data'}
+              </div>
+            </div>
             <p className="text-xs text-gray-500">
               {language === 'nb' 
-                ? 'Data oppdateres automatisk daglig' 
-                : 'Data is updated automatically daily'}
+                ? 'Data oppdateres automatisk i bakgrunnen' 
+                : 'Data is updated automatically in the background'}
             </p>
-          )}
-        </div>
+          </div>
+        )}
         
         {/* Provider grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -191,13 +199,13 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
               <div className="space-y-3">
                 <div className="text-gray-500">
                   {language === 'nb' 
-                    ? 'Ingen leverandører tilgjengelig for øyeblikket.' 
-                    : 'No providers available at the moment.'}
+                    ? 'Ingen tilbud tilgjengelig for øyeblikket.' 
+                    : 'No offers available at the moment.'}
                 </div>
                 <div className="text-sm text-gray-400">
                   {language === 'nb' 
-                    ? 'Data vil bli tilgjengelig når leverandørdata er hentet fra ekstern kilde.' 
-                    : 'Data will be available once provider information is fetched from external sources.'}
+                    ? 'Data vil vises automatisk når den hentes fra leverandørene.' 
+                    : 'Data will be displayed automatically when fetched from providers.'}
                 </div>
               </div>
             </div>
@@ -216,7 +224,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
               {isLoading ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                language === 'nb' ? 'Vis flere leverandører' : 'Show more providers'
+                language === 'nb' ? 'Vis flere tilbud' : 'Show more offers'
               )}
             </Button>
           </div>

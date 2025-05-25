@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Database } from 'lucide-react';
+import { Database, Zap } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -29,16 +29,13 @@ const Compare = () => {
       setProviders(data);
       
       if (data.length === 0) {
-        setError(language === 'nb' 
-          ? 'Ingen tilbud tilgjengelig for denne kategorien ennå' 
-          : 'No offers available for this category yet'
-        );
+        setError(null); // Don't treat empty data as error
       }
     } catch (err) {
       console.error('Failed to load providers:', err);
       setError(language === 'nb' 
-        ? 'Kunne ikke laste leverandører. Prøv igjen senere.' 
-        : 'Failed to load providers. Please try again later.'
+        ? 'Teknisk feil ved lasting av data. Prøv igjen senere.' 
+        : 'Technical error loading data. Please try again later.'
       );
     } finally {
       setIsLoading(false);
@@ -74,14 +71,17 @@ const Compare = () => {
               <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
               <p className="text-gray-300">{category.description[language]}</p>
               {!isLoading && providers.length > 0 && (
-                <p className="mt-2 text-sm text-gray-400">
-                  {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+                <div className="mt-4 flex items-center gap-4">
+                  <p className="text-sm text-gray-400">
+                    {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+                  </p>
                   {providers.some(p => p.isValidData !== false) && (
-                    <span className="ml-2 text-green-400">
-                      • {language === 'nb' ? 'Oppdaterte priser' : 'Updated prices'}
-                    </span>
+                    <div className="flex items-center text-green-400 text-sm">
+                      <Zap size={16} className="mr-1" />
+                      {language === 'nb' ? 'Live data' : 'Live data'}
+                    </div>
                   )}
-                </p>
+                </div>
               )}
             </div>
           </div>
@@ -92,20 +92,32 @@ const Compare = () => {
             <div className="flex justify-center items-center py-12">
               <LoadingSpinner size="lg" />
               <span className="ml-3 text-lg">
-                {language === 'nb' ? 'Laster leverandører...' : 'Loading providers...'}
+                {language === 'nb' ? 'Laster tilbud...' : 'Loading offers...'}
               </span>
             </div>
           ) : error ? (
             <div className="text-center py-12">
+              <Database size={48} className="mx-auto text-red-400 mb-4" />
+              <h3 className="text-xl font-semibold mb-2 text-red-600">
+                {language === 'nb' ? 'Teknisk feil' : 'Technical error'}
+              </h3>
+              <p className="text-gray-600">{error}</p>
+            </div>
+          ) : providers.length === 0 ? (
+            <div className="text-center py-12">
               <Database size={48} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold mb-2">
-                {language === 'nb' ? 'Ingen data tilgjengelig' : 'No data available'}
+                {language === 'nb' ? 'Ingen tilbud tilgjengelig akkurat nå' : 'No offers available right now'}
               </h3>
-              <p className="text-gray-600 mb-4">{error}</p>
+              <p className="text-gray-600 mb-4">
+                {language === 'nb' 
+                  ? 'Data vil vises automatisk når den hentes fra leverandørene.' 
+                  : 'Data will be displayed automatically when fetched from providers.'}
+              </p>
               <p className="text-sm text-gray-500">
                 {language === 'nb' 
-                  ? 'Data vil bli tilgjengelig når leverandørdata er hentet fra ekstern kilde.' 
-                  : 'Data will be available once provider information is fetched from external sources.'}
+                  ? 'Vårt system henter nye tilbud regelmessig i bakgrunnen.' 
+                  : 'Our system fetches new offers regularly in the background.'}
               </p>
             </div>
           ) : (
@@ -135,8 +147,8 @@ const Compare = () => {
                     </h3>
                     <p className="text-sm text-gray-600">
                       {language === 'nb' 
-                        ? `Vi sammenligner priser fra ${providers.length} leverandører. Data oppdateres automatisk daglig.` 
-                        : `We compare prices from ${providers.length} providers. Data is updated automatically daily.`}
+                        ? `Vi sammenligner priser fra ${providers.length} leverandører. Data oppdateres automatisk.` 
+                        : `We compare prices from ${providers.length} providers. Data is updated automatically.`}
                     </p>
                     {providers.some(p => p.lastUpdated && p.isValidData !== false) && (
                       <p className="text-xs text-green-600 mt-2">
