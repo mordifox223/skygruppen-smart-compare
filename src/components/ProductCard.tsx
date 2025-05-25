@@ -2,7 +2,7 @@
 import React from 'react';
 import { BuifylProduct, logAffiliateClick } from '@/lib/services/buifylService';
 import { Button } from '@/components/ui/button';
-import { Star, ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
+import { ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -44,7 +44,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         >
           {product.provider_name}
         </h3>
-        {product.plan_name && (
+        {product.plan_name && product.plan_name !== product.provider_name && (
           <p className="text-sm text-gray-600 mt-1">{product.plan_name}</p>
         )}
         <div className="price-badge mt-2">

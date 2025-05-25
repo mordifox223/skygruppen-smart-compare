@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { fetchBuifylProducts, BuifylProduct } from '@/lib/services/buifylService';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
-import LoadingSpinner from './LoadingSpinner';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ShoppingCart, Database } from 'lucide-react';
 

@@ -22,6 +22,46 @@ export interface BuifylProduct {
   updated_at: string;
 }
 
+// Type guard to ensure category is valid
+const isValidCategory = (category: string): category is 'mobile' | 'electricity' | 'insurance' | 'loan' => {
+  return ['mobile', 'electricity', 'insurance', 'loan'].includes(category);
+};
+
+// Helper function to safely parse features
+const parseFeatures = (features: any): { nb: string[]; en: string[] } => {
+  if (!features) return { nb: [], en: [] };
+  
+  // Handle different feature formats from database
+  if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features);
+      return {
+        nb: Array.isArray(parsed.nb) ? parsed.nb : [],
+        en: Array.isArray(parsed.en) ? parsed.en : []
+      };
+    } catch {
+      return { nb: [], en: [] };
+    }
+  }
+  
+  if (typeof features === 'object') {
+    // Handle nested features object
+    if (features.features) {
+      return {
+        nb: Array.isArray(features.features.nb) ? features.features.nb : [],
+        en: Array.isArray(features.features.en) ? features.features.en : []
+      };
+    }
+    
+    return {
+      nb: Array.isArray(features.nb) ? features.nb : [],
+      en: Array.isArray(features.en) ? features.en : []
+    };
+  }
+  
+  return { nb: [], en: [] };
+};
+
 export const fetchBuifylProducts = async (category: string): Promise<BuifylProduct[]> => {
   try {
     console.log(`🔍 Fetching Buifyl products for category: ${category}`);
@@ -40,11 +80,26 @@ export const fetchBuifylProducts = async (category: string): Promise<BuifylProdu
 
     console.log(`✅ Found ${data?.length || 0} products for ${category}`);
     
-    // Transform to match BuifylProduct interface
-    const transformedData = (data || []).map(item => ({
-      ...item,
-      features: item.features?.features || { nb: [], en: [] }
-    }));
+    // Transform and validate data
+    const transformedData = (data || [])
+      .filter(item => isValidCategory(item.category))
+      .map(item => ({
+        id: item.id,
+        provider_name: item.provider_name,
+        category: item.category as 'mobile' | 'electricity' | 'insurance' | 'loan',
+        monthly_price: Number(item.monthly_price) || 0,
+        plan_name: item.plan_name || item.provider_name,
+        features: parseFeatures(item.features),
+        offer_url: item.offer_url || item.source_url,
+        source_url: item.source_url,
+        data_allowance: item.data_allowance || undefined,
+        speed: item.speed || undefined,
+        contract_length: item.contract_length || undefined,
+        logo_url: item.logo_url || undefined,
+        is_active: Boolean(item.is_active),
+        scraped_at: item.scraped_at || item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at || item.created_at || new Date().toISOString()
+      }));
 
     return transformedData;
   } catch (error) {
