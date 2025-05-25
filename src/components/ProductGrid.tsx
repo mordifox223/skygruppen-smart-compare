@@ -1,11 +1,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { enhancedBuifylService, EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
+import { DynamicProviderService } from '@/lib/services/dynamicProviderService';
+import { NorwegianProviderScraper } from '@/lib/services/norwegianProviderScraper';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
+import SmartRecommendations from './SmartRecommendations';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Database, AlertTriangle, CheckCircle, RefreshCw, Clock } from 'lucide-react';
+import { ShoppingCart, Database, AlertTriangle, CheckCircle, RefreshCw, Clock, Zap } from 'lucide-react';
 
 interface ProductGridProps {
   category: string;
@@ -34,21 +37,27 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<string | null>(null);
+  const [showSmartRecommendations, setShowSmartRecommendations] = useState(false);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`🔄 Laster kvalitetssikrede produkter for ${category}...`);
+      console.log(`🔄 Loading enhanced products for ${category}...`);
+      
+      // For mobile category, use Norwegian provider data
+      if (category === 'mobile') {
+        await NorwegianProviderScraper.scrapeAllProviders();
+      }
       
       const validatedProducts = await enhancedBuifylService.getValidatedProducts(category);
       setProducts(validatedProducts);
       setLastSync(new Date().toISOString());
       
     } catch (err) {
-      console.error('Feil ved lasting av produkter:', err);
-      setError('Feil ved lasting av produkter');
+      console.error('Error loading products:', err);
+      setError('Error loading products');
     } finally {
       setLoading(false);
     }
@@ -57,18 +66,24 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const handleManualSync = async () => {
     try {
       setSyncing(true);
-      console.log('🔄 Starter manuell synkronisering...');
+      console.log('🔄 Starting manual sync with real-time data...');
       
-      await enhancedBuifylService.triggerDataSync();
+      if (category === 'mobile') {
+        // Use Norwegian provider scraper for mobile
+        await NorwegianProviderScraper.scrapeAllProviders();
+      } else {
+        // Use existing service for other categories
+        await enhancedBuifylService.triggerDataSync();
+      }
       
-      // Last produkter på nytt etter synkronisering
+      // Reload products after sync
       setTimeout(() => {
         loadProducts();
       }, 2000);
       
     } catch (error) {
-      console.error('Feil ved manuell synkronisering:', error);
-      setError('Feil ved synkronisering av data');
+      console.error('Error during manual sync:', error);
+      setError('Error syncing data');
     } finally {
       setSyncing(false);
     }
@@ -77,10 +92,14 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   useEffect(() => {
     loadProducts();
 
-    // Start automatisk synkronisering
-    enhancedBuifylService.startAutoSync();
+    // Start real-time monitoring for mobile category
+    if (category === 'mobile') {
+      NorwegianProviderScraper.startRealTimeMonitoring();
+    } else {
+      enhancedBuifylService.startAutoSync();
+    }
 
-    // Sett opp real-time updates
+    // Set up real-time updates
     const channel = supabase
       .channel('realtime-products')
       .on('postgres_changes', {
@@ -89,7 +108,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         table: 'provider_offers',
         filter: `category=eq.${category}`
       }, (payload) => {
-        console.log('Real-time oppdatering mottatt:', payload);
+        console.log('Real-time update received:', payload);
         loadProducts();
       })
       .subscribe();
@@ -104,7 +123,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <ShoppingCart size={16} />
-          <span>Validerer og laster produkter...</span>
+          <span>Loading Norwegian providers with real-time data...</span>
         </div>
         <LoadingSkeleton />
       </div>
@@ -115,11 +134,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
     return (
       <div className="text-center py-12">
         <Database size={48} className="mx-auto text-red-400 mb-4" />
-        <h3 className="text-xl font-semibold mb-2 text-red-600">Datafeil</h3>
+        <h3 className="text-xl font-semibold mb-2 text-red-600">Data Error</h3>
         <p className="text-gray-600 mb-4">{error}</p>
         <Button onClick={loadProducts} variant="outline">
           <RefreshCw size={16} className="mr-2" />
-          Prøv igjen
+          Try Again
         </Button>
       </div>
     );
@@ -130,32 +149,55 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
       <div className="empty-state text-center py-12">
         <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
         <h3 className="text-xl font-semibold mb-2">
-          Ingen kvalitetssikrede tilbud tilgjengelig
+          No verified offers available
         </h3>
         <p className="text-gray-600 mb-4">
-          Alle produkter gjennomgår kvalitetskontroll før visning.
+          All products undergo quality control before display.
         </p>
         <Button onClick={handleManualSync} disabled={syncing}>
           <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Synkroniserer...' : 'Synkroniser data'}
+          {syncing ? 'Syncing...' : 'Sync Data'}
         </Button>
       </div>
     );
   }
 
-  // Beregn kvalitetsstatistikk
+  // Calculate quality statistics
   const avgQuality = products.reduce((sum, p) => sum + p.qualityScore, 0) / products.length;
   const liveDataCount = products.filter(p => p.isLiveData).length;
   const verifiedCount = products.filter(p => p.validationStatus === 'verified').length;
 
   return (
-    <div className="space-y-4">
-      {/* Kvalitetsindikatorer */}
+    <div className="space-y-6">
+      {/* Smart Recommendations for Mobile */}
+      {category === 'mobile' && (
+        <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-blue-600" />
+              <h3 className="font-semibold text-blue-800">Smart Recommendations</h3>
+            </div>
+            <Button 
+              onClick={() => setShowSmartRecommendations(!showSmartRecommendations)}
+              variant="outline"
+              size="sm"
+            >
+              {showSmartRecommendations ? 'Hide' : 'Show'} AI Recommendations
+            </Button>
+          </div>
+          
+          {showSmartRecommendations && <SmartRecommendations />}
+        </div>
+      )}
+
+      {/* Quality indicators */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle size={16} className="text-green-600" />
-            <span className="font-medium">Kvalitetssikrede produkter</span>
+            <span className="font-medium">
+              {category === 'mobile' ? 'Norwegian Mobile Providers - Live Data' : 'Quality Assured Products'}
+            </span>
           </div>
           <Button 
             onClick={handleManualSync} 
@@ -164,16 +206,16 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
             variant="outline"
           >
             <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Synker...' : 'Sync'}
+            {syncing ? 'Syncing...' : 'Sync'}
           </Button>
         </div>
         <div className="text-xs text-gray-600 mt-1 space-y-1">
-          <div>📊 {products.length} produkter vises • Kvalitet: {avgQuality.toFixed(1)}%</div>
-          <div>⚡ {liveDataCount} med live data • ✅ {verifiedCount} fullt verifisert</div>
+          <div>📊 {products.length} products shown • Quality: {avgQuality.toFixed(1)}%</div>
+          <div>⚡ {liveDataCount} with live data • ✅ {verifiedCount} fully verified</div>
           {lastSync && (
             <div className="flex items-center">
               <Clock size={12} className="mr-1" />
-              Sist kontrollert: {new Date(lastSync).toLocaleTimeString('nb-NO')}
+              Last checked: {new Date(lastSync).toLocaleTimeString('nb-NO')}
             </div>
           )}
         </div>
