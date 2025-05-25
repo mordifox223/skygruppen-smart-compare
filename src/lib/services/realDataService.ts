@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -10,7 +9,7 @@ export interface ProviderOffer {
   plan_name: string;
   monthly_price: number;
   offer_url: string;
-  features: Json; // Changed from Record<string, any> to Json to match Supabase type
+  features: Json;
   data_allowance?: string;
   speed?: string;
   contract_length?: string;
@@ -19,6 +18,7 @@ export interface ProviderOffer {
   source_url: string;
   is_active: boolean;
   scraped_at: string;
+  manual_override_url?: string;
 }
 
 export interface DataSource {
@@ -50,14 +50,7 @@ class RealDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      // Check cache first
-      const cached = this.cache.get(category);
-      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-        console.log(`Using cached data for ${category}`);
-        return cached.data;
-      }
-
-      console.log(`Fetching real data from Supabase for ${category}`);
+      console.log(`Fetching data from Supabase for ${category}`);
       
       // Fetch from Supabase provider_offers table
       const { data: offers, error } = await supabase
@@ -69,13 +62,25 @@ class RealDataService {
 
       if (error) {
         console.error('Error fetching offers from Supabase:', error);
-        // Fallback to static data if Supabase fails
-        return this.getFallbackProviders(category);
+        throw new Error(`Database error: ${error.message}`);
       }
 
+      // Only use fallback if database is completely empty or connection failed
       if (!offers || offers.length === 0) {
-        console.log(`No offers found in database for ${category}, using fallback`);
-        return this.getFallbackProviders(category);
+        console.log(`No offers found in database for ${category}`);
+        // Check if database is completely empty vs category has no data
+        const { data: totalOffers } = await supabase
+          .from('provider_offers')
+          .select('id', { count: 'exact' })
+          .limit(1);
+        
+        if (totalOffers && totalOffers.length === 0) {
+          console.log('Database is empty - need to populate with initial data');
+          return this.getFallbackProviders(category);
+        } else {
+          console.log(`Category ${category} has no offers but database has other data`);
+          return [];
+        }
       }
 
       // Convert offers to Provider format
@@ -89,7 +94,7 @@ class RealDataService {
 
     } catch (error) {
       console.error(`Error in getProviders for ${category}:`, error);
-      return this.getFallbackProviders(category);
+      throw error; // Don't hide errors, let them bubble up
     }
   }
 
@@ -104,11 +109,31 @@ class RealDataService {
       rating: this.estimateRating(offer.provider_name),
       features: this.transformFeatures(offer),
       url: offer.source_url,
-      offerUrl: offer.direct_link || offer.offer_url,
+      offerUrl: this.buildValidAffiliateUrl(offer),
       lastUpdated: new Date(offer.scraped_at),
-      isValidData: true,
-      hasSpecificOffer: !!offer.direct_link
+      isValidData: this.isDataFresh(offer.scraped_at),
+      hasSpecificOffer: !!(offer.manual_override_url || offer.direct_link)
     }));
+  }
+
+  private buildValidAffiliateUrl(offer: any): string {
+    // Priority: manual override > direct_link > offer_url > source_url
+    const url = offer.manual_override_url || offer.direct_link || offer.offer_url || offer.source_url;
+    
+    // Add tracking parameters for analytics
+    const trackingUrl = new URL(url);
+    trackingUrl.searchParams.set('utm_source', 'skygruppen');
+    trackingUrl.searchParams.set('utm_medium', 'compare');
+    trackingUrl.searchParams.set('utm_campaign', offer.category);
+    trackingUrl.searchParams.set('utm_content', offer.provider_name);
+    
+    return trackingUrl.toString();
+  }
+
+  private isDataFresh(scrapedAt: string): boolean {
+    const scrapedDate = new Date(scrapedAt);
+    const hoursSinceUpdate = (Date.now() - scrapedDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceUpdate <= 48; // Fresh if updated within 48 hours
   }
 
   private transformFeatures(offer: any): Record<string, string[]> {
@@ -155,7 +180,6 @@ class RealDataService {
   }
 
   private estimateRating(providerName: string): number {
-    // Basic rating estimation based on provider reputation
     const ratings: Record<string, number> = {
       'Sbanken': 4.5,
       'DNB': 4.2,
@@ -184,24 +208,25 @@ class RealDataService {
   }
 
   private getFallbackProviders(category: string): Provider[] {
-    // Return minimal fallback data to show the site is working
+    // Only return fallback when database is completely empty
     const fallbackData: Record<string, Provider[]> = {
-      loan: [{
-        id: 'fallback-loan-1',
-        name: 'Datahenting pågår',
-        category: 'loan',
+      insurance: [{
+        id: 'temp-insurance-1',
+        name: 'If Forsikring',
+        category: 'insurance',
         logo: '/placeholder.svg',
-        price: 0,
-        priceLabel: { nb: '% rente', en: '% interest' },
-        rating: 0,
+        price: 299,
+        priceLabel: { nb: 'kr/mnd', en: 'NOK/month' },
+        rating: 4.4,
         features: {
-          nb: ['Data hentes fra leverandører', 'Oppdateres automatisk daglig'],
-          en: ['Data being fetched from providers', 'Updated automatically daily']
+          nb: ['Bilforsikring', 'Hjemforsikring', 'Reiseforsikring'],
+          en: ['Car insurance', 'Home insurance', 'Travel insurance']
         },
-        url: '#',
-        offerUrl: '#',
+        url: 'https://www.if.no',
+        offerUrl: 'https://www.if.no/privat/bilforsikring',
         lastUpdated: new Date(),
-        isValidData: false
+        isValidData: false,
+        validationStatus: 'Midlertidig data - ekte data lastes snart'
       }]
     };
     
@@ -264,6 +289,16 @@ class RealDataService {
     } catch (error) {
       console.error('Failed to trigger data update:', error);
       throw error;
+    }
+  }
+
+  async validateAffiliateUrl(url: string): Promise<boolean> {
+    try {
+      const response = await fetch(url, { method: 'HEAD', mode: 'no-cors' });
+      return response.ok;
+    } catch (error) {
+      console.error('URL validation failed:', url, error);
+      return false;
     }
   }
 }

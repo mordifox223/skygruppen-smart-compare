@@ -18,31 +18,41 @@ class ProviderDataService {
       // Try to get real data from Supabase first
       const realProviders = await realDataService.getProviders(category);
       
-      if (realProviders.length > 0 && realProviders.some(p => p.isValidData !== false)) {
+      if (realProviders.length > 0) {
         console.log(`Using real data for ${category}: ${realProviders.length} providers`);
         return realProviders;
       }
       
-      // Fallback to static data if no real data is available
-      console.log(`Falling back to static data for ${category}`);
-      const staticProviders = this.getStaticProviders(category);
+      // Only use static data if no real data AND database is empty
+      console.log(`No data found for ${category}, checking if database is empty`);
+      const { data: totalOffers } = await supabase
+        .from('provider_offers')
+        .select('id', { count: 'exact' })
+        .limit(1);
       
-      // Mark static data as fallback
-      return staticProviders.map(provider => ({
-        ...provider,
-        isValidData: false,
-        validationStatus: 'Using fallback data - real data will be available after next update'
-      }));
+      if (!totalOffers || totalOffers.length === 0) {
+        console.log(`Database is empty, using static data for ${category}`);
+        const staticProviders = this.getStaticProviders(category);
+        return staticProviders.map(provider => ({
+          ...provider,
+          isValidData: false,
+          validationStatus: 'Midlertidig data - systemet settes opp'
+        }));
+      }
+      
+      // Database has data but this category doesn't - return empty
+      console.log(`Category ${category} has no data available`);
+      return [];
 
     } catch (error) {
       console.error(`Error in getProviders for ${category}:`, error);
       
-      // Final fallback to static data
+      // Only fallback on actual errors, not empty data
       const staticProviders = this.getStaticProviders(category);
       return staticProviders.map(provider => ({
         ...provider,
         isValidData: false,
-        validationStatus: 'Error loading data - using fallback'
+        validationStatus: 'Feil ved henting av data - midlertidig backup'
       }));
     }
   }
@@ -115,6 +125,32 @@ class ProviderDataService {
     if (recentFailures > 2) return 'poor';
     if (activeSources < totalSources * 0.8) return 'degraded';
     return 'good';
+  }
+
+  // New method to log affiliate clicks to Supabase
+  async logAffiliateClick(providerId: string, providerName: string, category: string, targetUrl: string): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('affiliate_clicks')
+        .insert({
+          provider_id: providerId,
+          provider_name: providerName,
+          category: category,
+          url: targetUrl,
+          user_agent: navigator.userAgent,
+          referrer: document.referrer,
+          ip_address: null, // Will be set by Supabase/server
+          timestamp: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('Failed to log affiliate click:', error);
+      } else {
+        console.log('Affiliate click logged successfully');
+      }
+    } catch (error) {
+      console.error('Error logging affiliate click:', error);
+    }
   }
 }
 

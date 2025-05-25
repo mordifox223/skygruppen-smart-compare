@@ -10,6 +10,7 @@ import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import { Button } from '@/components/ui/button';
+import { RefreshCw, Database } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -27,9 +28,19 @@ const Compare = () => {
       setError(null);
       const data = await getProviders(categoryId);
       setProviders(data);
+      
+      if (data.length === 0) {
+        setError(language === 'nb' 
+          ? 'Ingen tilbud tilgjengelig for denne kategorien ennå' 
+          : 'No offers available for this category yet'
+        );
+      }
     } catch (err) {
       console.error('Failed to load providers:', err);
-      setError(language === 'nb' ? 'Kunne ikke laste leverandører' : 'Failed to load providers');
+      setError(language === 'nb' 
+        ? 'Kunne ikke laste leverandører. Prøv igjen senere.' 
+        : 'Failed to load providers. Please try again later.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -64,15 +75,25 @@ const Compare = () => {
               <div>
                 <h1 className="text-3xl font-bold mb-2">{category.name[language]}</h1>
                 <p className="text-gray-300">{category.description[language]}</p>
-                {!isLoading && (
+                {!isLoading && providers.length > 0 && (
                   <p className="mt-2 text-sm text-gray-400">
-                    {providers.length > 0 
-                      ? `${providers.length} ${language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}`
-                      : language === 'nb' ? 'Henter leverandører...' : 'Fetching providers...'
-                    }
+                    {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+                    {providers.some(p => p.isValidData !== false) && (
+                      <span className="ml-2 text-green-400">
+                        • {language === 'nb' ? 'Oppdaterte priser' : 'Updated prices'}
+                      </span>
+                    )}
                   </p>
                 )}
               </div>
+              <Button 
+                onClick={loadProviders} 
+                variant="outline" 
+                className="text-white border-white hover:bg-white hover:text-gray-900"
+              >
+                <RefreshCw size={16} className="mr-2" />
+                {language === 'nb' ? 'Oppdater' : 'Refresh'}
+              </Button>
             </div>
           </div>
         </div>
@@ -87,10 +108,16 @@ const Compare = () => {
             </div>
           ) : error ? (
             <div className="text-center py-12">
-              <p className="text-red-600 mb-4">{error}</p>
-              <Button onClick={loadProviders} variant="outline">
-                {language === 'nb' ? 'Prøv igjen' : 'Try again'}
-              </Button>
+              <Database size={48} className="mx-auto text-gray-400 mb-4" />
+              <h3 className="text-xl font-semibold mb-2">
+                {language === 'nb' ? 'Ingen data tilgjengelig' : 'No data available'}
+              </h3>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <div className="space-x-2">
+                <Button onClick={loadProviders} variant="outline">
+                  {language === 'nb' ? 'Prøv igjen' : 'Try again'}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -111,7 +138,7 @@ const Compare = () => {
                   </p>
                 </div>
                 
-                {/* Provider count info */}
+                {/* Data freshness info */}
                 {providers.length > 0 && (
                   <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
                     <h3 className="font-semibold mb-2 text-gray-800">
@@ -119,9 +146,19 @@ const Compare = () => {
                     </h3>
                     <p className="text-sm text-gray-600">
                       {language === 'nb' 
-                        ? `Vi sammenligner priser og tjenester fra ${providers.length} leverandører. Data oppdateres automatisk daglig for å sikre nøyaktighet.` 
-                        : `We compare prices and services from ${providers.length} providers. Data is updated automatically daily to ensure accuracy.`}
+                        ? `Vi sammenligner priser fra ${providers.length} leverandører. Data oppdateres automatisk daglig.` 
+                        : `We compare prices from ${providers.length} providers. Data is updated automatically daily.`}
                     </p>
+                    {providers.some(p => p.lastUpdated && p.isValidData !== false) && (
+                      <p className="text-xs text-green-600 mt-2">
+                        {language === 'nb' ? 'Sist oppdatert: ' : 'Last updated: '}
+                        {Math.max(...providers.filter(p => p.lastUpdated && p.isValidData !== false)
+                          .map(p => new Date(p.lastUpdated!).getTime())
+                        ) > 0 && new Date(Math.max(...providers.filter(p => p.lastUpdated && p.isValidData !== false)
+                          .map(p => new Date(p.lastUpdated!).getTime())
+                        )).toLocaleDateString('nb-NO')}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

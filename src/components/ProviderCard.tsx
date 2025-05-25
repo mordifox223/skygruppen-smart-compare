@@ -3,10 +3,10 @@ import React from 'react';
 import { Provider } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
 import { Button } from '@/components/ui/button';
-import { Star, ExternalLink, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Star, ExternalLink, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
-import { buildAffiliateLink, logClick } from '@/lib/affiliate';
+import { providerDataService } from '@/lib/services/providerDataService';
 
 interface ProviderCardProps {
   provider: Provider;
@@ -17,22 +17,22 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   
   const handleProviderClick = async () => {
     try {
-      // Log the click for analytics
-      await logClick(provider.id, provider.name, provider.category);
+      // Log the click for analytics in Supabase
+      await providerDataService.logAffiliateClick(
+        provider.id, 
+        provider.name, 
+        provider.category,
+        provider.offerUrl
+      );
       
-      // Build the affiliate link with proper targeting
-      const affiliateUrl = buildAffiliateLink(provider);
-      
-      console.log(`Redirecting to ${provider.name} offer:`, affiliateUrl);
+      console.log(`Opening ${provider.name} offer:`, provider.offerUrl);
       
       // Open in new tab with proper security
-      window.open(affiliateUrl, '_blank', 'noopener,noreferrer');
+      window.open(provider.offerUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('Error handling provider click:', error);
-      // Fallback to offer URL or base URL
-      const fallbackUrl = provider.offerUrl || provider.url;
-      console.log(`Using fallback URL for ${provider.name}:`, fallbackUrl);
-      window.open(fallbackUrl, '_blank', 'noopener,noreferrer');
+      // Fallback - still open the link
+      window.open(provider.offerUrl || provider.url, '_blank', 'noopener,noreferrer');
     }
   };
   
@@ -61,41 +61,32 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
     return stars;
   };
 
-  // Check if data might be outdated
-  const isDataStale = () => {
-    if (!provider.lastUpdated) return false;
-    const daysSinceUpdate = (Date.now() - new Date(provider.lastUpdated).getTime()) / (1000 * 60 * 60 * 24);
-    return daysSinceUpdate > 7; // Consider stale if older than 7 days
-  };
-
   // Check if provider has specific offer URL
-  const hasSpecificOffer = provider.offerUrl && provider.offerUrl !== provider.url;
+  const hasSpecificOffer = provider.hasSpecificOffer;
+  
+  // Only show outdated warning if data is actually old (not just fallback)
+  const showOutdatedWarning = provider.isValidData === false && provider.validationStatus?.includes('utdatert');
   
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
-      {/* Data validity and offer specificity indicators */}
-      <div className="mb-2 space-y-1">
-        {(provider.isValidData === false || isDataStale()) && (
-          <div className="p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700 flex items-center">
-            <AlertTriangle size={12} className="mr-1" />
-            {language === 'nb' ? 'Data kan være utdatert' : 'Data may be outdated'}
+      {/* Only show warnings for actual data issues, not fallback data */}
+      {showOutdatedWarning && (
+        <div className="mb-2">
+          <div className="p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+            {provider.validationStatus}
           </div>
-        )}
-        
-        {hasSpecificOffer && (
+        </div>
+      )}
+      
+      {/* Show offer type indicator */}
+      {hasSpecificOffer && (
+        <div className="mb-2">
           <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center">
             <CheckCircle size={12} className="mr-1" />
             {language === 'nb' ? 'Direkte til tilbud' : 'Direct to offer'}
           </div>
-        )}
-        
-        {!hasSpecificOffer && (
-          <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center">
-            <ExternalLink size={12} className="mr-1" />
-            {language === 'nb' ? 'Til leverandørens side' : 'To provider\'s website'}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
       
       <div className="flex items-center mb-4">
         <div className="mr-3">
@@ -141,8 +132,8 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         <ExternalLink size={16} />
       </Button>
       
-      {/* Last updated info */}
-      {provider.lastUpdated && (
+      {/* Last updated info - only show for real data */}
+      {provider.lastUpdated && provider.isValidData !== false && (
         <div className="mt-2 text-xs text-gray-500 text-center">
           {language === 'nb' ? 'Oppdatert' : 'Updated'}: {new Date(provider.lastUpdated).toLocaleDateString('nb-NO')}
         </div>
