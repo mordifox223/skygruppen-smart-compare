@@ -19,14 +19,14 @@ export class ScrapingScheduler {
     console.log('🚀 Starting automated scraping system');
     this.isRunning = true;
 
-    // Schedule daily full scraping
-    this.scheduleDailyScraping();
+    // Schedule real-time scraping every 30 minutes - this is the main scraper
+    this.scheduleRealTimeScraping();
     
     // Schedule hourly validation
     this.scheduleHourlyValidation();
     
-    // Schedule real-time scraping every 30 minutes
-    this.scheduleRealTimeScraping();
+    // Run initial scraping to populate database
+    this.runInitialScraping();
   }
 
   /**
@@ -45,19 +45,21 @@ export class ScrapingScheduler {
   }
 
   /**
-   * Schedule daily full scraping at 3 AM
+   * Run initial scraping to populate database
    */
-  private static scheduleDailyScraping(): void {
-    const dailyInterval = setInterval(async () => {
-      const now = new Date();
-      if (now.getHours() === 3 && now.getMinutes() === 0) {
-        console.log('🌅 Starting daily full scraping');
-        await UniversalScrapingService.startUniversalScraping();
+  private static async runInitialScraping(): Promise<void> {
+    console.log('🌟 Running initial scraping to populate database');
+    
+    const categories = ['mobile', 'electricity', 'insurance', 'loan'];
+    for (const category of categories) {
+      try {
+        console.log(`🔄 Initial scraping for ${category}`);
+        await realTimeScrapingService.scrapeAllProviders(category);
+        console.log(`✅ Initial scraping completed for ${category}`);
+      } catch (error) {
+        console.error(`❌ Initial scraping failed for ${category}:`, error);
       }
-    }, 60000); // Check every minute
-
-    this.intervals.set('daily', dailyInterval);
-    console.log('📅 Scheduled daily scraping at 3:00 AM');
+    }
   }
 
   /**
@@ -81,19 +83,20 @@ export class ScrapingScheduler {
   }
 
   /**
-   * Schedule real-time scraping every 30 minutes
+   * Schedule real-time scraping every 30 minutes - THIS STORES DATA IN DATABASE
    */
   private static scheduleRealTimeScraping(): void {
     const realTimeInterval = setInterval(async () => {
       const now = new Date();
       if (now.getMinutes() % 30 === 0) {
-        console.log('⚡ Starting automated real-time scraping');
+        console.log('⚡ Starting automated real-time scraping and database update');
         
         const categories = ['mobile', 'electricity', 'insurance', 'loan'];
         for (const category of categories) {
           try {
+            console.log(`📊 Scraping and storing data for ${category} in database`);
             await realTimeScrapingService.scrapeAllProviders(category);
-            console.log(`✅ Completed automated scraping for ${category}`);
+            console.log(`✅ Data scraped and stored for ${category}`);
           } catch (error) {
             console.error(`❌ Failed automated scraping for ${category}:`, error);
           }
@@ -102,22 +105,19 @@ export class ScrapingScheduler {
     }, 60000); // Check every minute
 
     this.intervals.set('realtime', realTimeInterval);
-    console.log('📅 Scheduled real-time scraping every 30 minutes');
+    console.log('📅 Scheduled real-time scraping every 30 minutes (stores in database)');
   }
 
   /**
-   * Run immediate scraping for a specific category
+   * Run immediate scraping for a specific category and store in database
    */
   static async runImmediateScraping(category: string): Promise<void> {
-    console.log(`⚡ Running immediate scraping for category: ${category}`);
+    console.log(`⚡ Running immediate scraping for category: ${category} and storing in database`);
     
     try {
-      // Run both universal and real-time scraping
-      const universalResults = await UniversalScrapingService.scrapeCategory(category);
+      // Use real-time scraping service which stores directly in database
       await realTimeScrapingService.scrapeAllProviders(category);
-      
-      const successCount = universalResults.filter(r => r.success).length;
-      console.log(`✅ Immediate scraping completed: ${successCount}/${universalResults.length} providers successful`);
+      console.log(`✅ Immediate scraping completed and data stored for ${category}`);
     } catch (error) {
       console.error(`❌ Immediate scraping failed for ${category}:`, error);
     }
@@ -135,9 +135,8 @@ export class ScrapingScheduler {
       isRunning: this.isRunning,
       activeSchedules: Array.from(this.intervals.keys()),
       nextRun: {
-        daily: 'Next daily scraping: 3:00 AM',
         validation: 'Next validation: Top of next hour',
-        realtime: 'Next real-time update: Every 30 minutes'
+        realtime: 'Next database update: Every 30 minutes'
       }
     };
   }
