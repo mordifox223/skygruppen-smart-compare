@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
-import { affiliateClickService } from '@/lib/services/affiliateClickService';
+import { buifylService } from '@/lib/services/buifylService';
 
 interface ProviderCardProps {
   provider: Provider;
@@ -20,20 +20,20 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       const targetUrl = provider.offerUrl || provider.url;
       
       // Log Buifyl Shop affiliate click
-      affiliateClickService.logAffiliateClick(
+      buifylService.logAffiliateClick(
         provider.id, 
         provider.name, 
         provider.category,
         targetUrl
       );
       
-      console.log(`🔗 Opening ${provider.name} offer via Buifyl Shop:`, targetUrl);
+      console.log(`🔗 Åpner ${provider.name} tilbud via Buifyl Shop:`, targetUrl);
       
-      // Open in new tab immediately
+      // Åpne i ny fane umiddelbart
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Error handling Buifyl Shop provider click:', error);
-      // Fallback - still open the link
+      console.error('Feil ved håndtering av Buifyl Shop provider click:', error);
+      // Fallback - åpne lenken likevel
       window.open(provider.offerUrl || provider.url, '_blank', 'noopener,noreferrer');
     }
   };
@@ -63,16 +63,16 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
     return stars;
   };
 
-  // Check if provider has specific offer URL
+  // Sjekk om provider har spesifikk tilbuds-URL
   const hasSpecificOffer = provider.hasSpecificOffer;
   
-  // Only show data freshness info for real data
+  // Vis kun data freshness info for ekte data
   const showDataFreshness = provider.lastUpdated && provider.isValidData !== false;
   
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
       
-      {/* Show Buifyl Shop indicator */}
+      {/* Vis Buifyl Shop indikator */}
       <div className="mb-2">
         <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center">
           <ShoppingCart size={12} className="mr-1" />
@@ -131,7 +131,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         <ExternalLink size={16} />
       </Button>
       
-      {/* Enhanced last updated info from Buifyl Shop */}
+      {/* Forbedret sist oppdatert info fra Buifyl Shop */}
       {showDataFreshness && (
         <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
           <Clock size={12} className="mr-1" />

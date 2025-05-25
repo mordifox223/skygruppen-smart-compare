@@ -1,16 +1,17 @@
+
 import { Provider } from '@/lib/types';
-import { providerDataService } from '@/lib/services/providerDataService';
+import { buifylService } from '@/lib/services/buifylService';
 
 export async function getProviders(category: string): Promise<Provider[]> {
   try {
-    console.log(`Loading providers for category: ${category}`);
-    // Only use the data service - no fallbacks whatsoever
-    const providers = await providerDataService.getProviders(category);
-    console.log(`Loaded ${providers.length} providers for ${category}`);
+    console.log(`Laster produkter for kategori: ${category}`);
+    // Kun bruk Buifyl service - ingen fallbacks
+    const providers = await buifylService.getProductsByCategory(category);
+    console.log(`Lastet ${providers.length} produkter for ${category} fra Buifyl Shop`);
     return providers;
   } catch (error) {
-    console.error(`Error loading providers for ${category}:`, error);
-    // Return empty array - no fallback data
+    console.error(`Feil ved lasting av produkter for ${category}:`, error);
+    // Returner tom array - ingen fallback data
     return [];
   }
 }
