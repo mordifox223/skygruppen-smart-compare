@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Provider } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
@@ -5,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
-import { buifylDataService } from '@/lib/services/buifyl/dataService';
+import { logAffiliateClick } from '@/lib/services/buifylService';
 
 interface ProviderCardProps {
   provider: Provider;
@@ -19,7 +20,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       const targetUrl = provider.offerUrl || provider.url;
       
       // Log Buifyl Shop affiliate click
-      buifylDataService.logAffiliateClick(
+      await logAffiliateClick(
         provider.id, 
         provider.name, 
         provider.category,
@@ -60,16 +61,16 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
     return stars;
   };
 
-  // Sjekk om provider har spesifikk tilbuds-URL
+  // Check if provider has specific offer URL
   const hasSpecificOffer = provider.hasSpecificOffer;
   
-  // Vis kun data freshness info for ekte data
+  // Show data freshness info for real data
   const showDataFreshness = provider.lastUpdated && provider.isValidData !== false;
   
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
       
-      {/* Vis Buifyl Shop indikator */}
+      {/* Show Buifyl Shop indicator */}
       <div className="mb-2">
         <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center">
           <ShoppingCart size={12} className="mr-1" />
@@ -128,7 +129,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         <ExternalLink size={16} />
       </Button>
       
-      {/* Forbedret sist oppdatert info fra Buifyl Shop */}
+      {/* Enhanced last updated info from Buifyl Shop */}
       {showDataFreshness && (
         <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
           <Clock size={12} className="mr-1" />
