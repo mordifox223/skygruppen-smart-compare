@@ -67,14 +67,11 @@ const Index = () => {
               {categories.map((category) => {
                 const categoryCount = providerCounts[category.id as keyof Omit<ProviderCounts, 'total'>] || 0;
                 return (
-                  <div key={category.id} className="relative">
-                    <CategoryCard category={category} />
-                    {categoryCount > 0 && (
-                      <div className="absolute top-2 right-2 bg-sky-600 text-white text-xs px-2 py-1 rounded-full">
-                        {categoryCount} {language === 'nb' ? 'tilbydere' : 'providers'}
-                      </div>
-                    )}
-                  </div>
+                  <CategoryCard 
+                    key={category.id} 
+                    category={category} 
+                    providerCount={categoryCount}
+                  />
                 );
               })}
             </div>

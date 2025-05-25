@@ -15,9 +15,10 @@ const iconMap: Record<string, React.ElementType> = {
 
 interface CategoryCardProps {
   category: Category;
+  providerCount?: number;
 }
 
-const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
+const CategoryCard: React.FC<CategoryCardProps> = ({ category, providerCount = 0 }) => {
   const { language } = useLanguage();
   const Icon = iconMap[category.icon] || Shield;
   
@@ -28,9 +29,11 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ category }) => {
           <div className="p-3 bg-sky-50 rounded-full">
             <Icon size={24} className="text-sky-600" />
           </div>
-          <span className="text-sm text-slate-500 font-montserrat">
-            {category.providers} {language === 'nb' ? 'leverandører' : 'providers'}
-          </span>
+          {providerCount > 0 && (
+            <span className="text-sm text-slate-500 font-montserrat">
+              {providerCount} {language === 'nb' ? 'leverandører' : 'providers'}
+            </span>
+          )}
         </div>
         
         <h3 className="text-xl font-montserrat font-semibold mb-2 text-slate-900">
