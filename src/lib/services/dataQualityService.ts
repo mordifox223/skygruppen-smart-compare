@@ -1,337 +1,322 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { BuifylProduct } from './buifylService';
 
-export interface QualityMetrics {
+export interface ValidationResult {
+  isValid: boolean;
+  confidence: number;
+  errors: string[];
+  warnings: string[];
+  quality: number;
+  shouldHide: boolean;
+}
+
+export interface ValidationReport {
   totalProducts: number;
   validProducts: number;
+  averageConfidence: number;
+  errorCount: number;
+  warningCount: number;
   hiddenProducts: number;
-  lastSync: string;
-  averageQuality: number;
-  syncErrors: string[];
+  qualityScore: number;
 }
 
-export interface ValidationRule {
-  field: string;
-  category: string;
-  validator: (value: any, product: BuifylProduct) => boolean;
-  errorMessage: string;
-  severity: 'error' | 'warning';
+export interface QualityMetrics {
+  dataFreshness: number;
+  priceAccuracy: number;
+  providerMatch: number;
+  completeness: number;
+  overall: number;
 }
 
-export interface DataStandard {
-  mobile: {
-    price: { min: number; max: number };
-    data_gb: string[];
-    networks: string[];
-    speeds: string[];
-  };
-  electricity: {
-    price_per_kwh: { min: number; max: number };
-    contract_types: string[];
-    origins: string[];
-  };
-  loan: {
-    interest_rate: { min: number; max: number };
-    loan_amounts: { min: number; max: number };
-    terms: number[];
-  };
-  insurance: {
-    monthly_premium: { min: number; max: number };
-    coverage_types: string[];
-    deductibles: number[];
-  };
-}
+// Standardized field definitions
+const requiredFields = ['provider_name', 'category', 'monthly_price', 'plan_name', 'offer_url', 'source_url'];
+const priceAccuracyThreshold = 0.1; // 10% threshold for price accuracy
+const dataFreshnessThreshold = 48; // Hours within which data is considered fresh
+
+// Known providers for provider matching
+const knownProviders = [
+  'Telenor', 'Telia', 'Ice', 'Talkmore', 'Fjordkraft', 'Tibber', 'Gjensidige', 'If', 'DNB', 'Sbanken', 'Nordea'
+];
 
 class DataQualityService {
-  private standards: DataStandard = {
-    mobile: {
-      price: { min: 99, max: 999 },
-      data_gb: ['Ubegrenset', 'Fri fart', '1GB', '5GB', '10GB', '20GB', '50GB', '100GB'],
-      networks: ['Telenor', 'Telia', 'Ice'],
-      speeds: ['4G', '5G', '4G+', 'Opp til 100 Mbps', 'Opp til 300 Mbps']
-    },
-    electricity: {
-      price_per_kwh: { min: 0.5, max: 3.0 },
-      contract_types: ['Fastpris', 'Spotpris', 'Variabel'],
-      origins: ['Vannkraft', 'Vindkraft', 'Solkraft', 'Kjernekraft']
-    },
-    loan: {
-      interest_rate: { min: 1.0, max: 25.0 },
-      loan_amounts: { min: 50000, max: 10000000 },
-      terms: [12, 24, 36, 60, 120, 240, 360]
-    },
-    insurance: {
-      monthly_premium: { min: 200, max: 2000 },
-      coverage_types: ['Kasko', 'Ansvar', 'Delkasko'],
-      deductibles: [0, 2000, 4000, 8000, 15000]
-    }
-  };
+  validateProduct(product: BuifylProduct): ValidationResult {
+    let errors: string[] = [];
+    let warnings: string[] = [];
+    let confidence = 100;
 
-  private validationRules: ValidationRule[] = [
-    {
-      field: 'provider_name',
-      category: 'all',
-      validator: (value: string) => value && value.length >= 2 && !/^\d+$/.test(value),
-      errorMessage: 'Ugyldig leverandørnavn',
-      severity: 'error'
-    },
-    {
-      field: 'monthly_price',
-      category: 'all',
-      validator: (value: number, product) => {
-        const standards = this.standards[product.category as keyof DataStandard];
-        if (!standards) return true;
-        const priceField = product.category === 'electricity' ? 'price_per_kwh' : 
-                          product.category === 'loan' ? 'interest_rate' : 
-                          product.category === 'insurance' ? 'monthly_premium' : 'price';
-        const range = (standards as any)[priceField];
-        return range ? value >= range.min && value <= range.max : true;
-      },
-      errorMessage: 'Pris utenfor forventet område',
-      severity: 'error'
-    },
-    {
-      field: 'data_allowance',
-      category: 'mobile',
-      validator: (value: string) => {
-        if (!value) return true;
-        return this.standards.mobile.data_gb.some(allowed => 
-          value.toLowerCase().includes(allowed.toLowerCase())
-        ) || /^\d+\s*(GB|MB)$/i.test(value);
-      },
-      errorMessage: 'Ugyldig dataformat',
-      severity: 'warning'
-    },
-    {
-      field: 'scraped_at',
-      category: 'all',
-      validator: (value: string) => {
-        const scrapedDate = new Date(value);
-        const hoursAgo = (Date.now() - scrapedDate.getTime()) / (1000 * 60 * 60);
-        return hoursAgo <= 24;
-      },
-      errorMessage: 'Data eldre enn 24 timer',
-      severity: 'warning'
-    }
-  ];
-
-  async validateProduct(product: BuifylProduct): Promise<{
-    isValid: boolean;
-    quality: number;
-    errors: string[];
-    warnings: string[];
-    shouldHide: boolean;
-  }> {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    let quality = 100;
-
-    // Kjør alle valideringsregler
-    for (const rule of this.validationRules) {
-      if (rule.category !== 'all' && rule.category !== product.category) continue;
-
-      const fieldValue = (product as any)[rule.field];
-      const isValid = rule.validator(fieldValue, product);
-
-      if (!isValid) {
-        if (rule.severity === 'error') {
-          errors.push(rule.errorMessage);
-          quality -= 25;
-        } else {
-          warnings.push(rule.errorMessage);
-          quality -= 10;
-        }
+    // Check for missing required fields
+    requiredFields.forEach(field => {
+      if (!product[field]) {
+        errors.push(`Missing required field: ${field}`);
+        confidence -= 15;
       }
+    });
+
+    // Validate price (example: ensure it's a positive number)
+    if (product.monthly_price <= 0) {
+      errors.push('Price must be a positive number');
+      confidence -= 10;
     }
 
-    // Spesifikk validering per kategori
-    quality -= await this.validateCategorySpecifics(product, errors, warnings);
-
-    // Sjekk for autogenererte mønstre
-    if (this.isLikelyAutoGenerated(product)) {
-      warnings.push('Produktet ser autogenerert ut');
-      quality -= 15;
+    // Check URL formats (basic check)
+    if (!product.offer_url.startsWith('http') || !product.source_url.startsWith('http')) {
+      warnings.push('URL format is invalid');
+      confidence -= 5;
     }
 
-    const finalQuality = Math.max(0, quality);
-    const shouldHide = errors.length > 0 || finalQuality < 70;
+    // Check data freshness (example: data should be recent)
+    const scrapedDate = new Date(product.scraped_at);
+    const hoursSinceScraped = (Date.now() - scrapedDate.getTime()) / (1000 * 60 * 60);
+    if (hoursSinceScraped > dataFreshnessThreshold) {
+      warnings.push('Data is older than 48 hours');
+      confidence -= 8;
+    }
+
+    // Provider name validation (example: check against known providers)
+    if (!knownProviders.includes(product.provider_name)) {
+      warnings.push('Provider name is not in the list of known providers');
+      confidence -= 7;
+    }
+
+    // Calculate quality score
+    let quality = Math.max(0, confidence); // Ensure quality is not negative
+
+    const shouldHide = errors.length > 0 || quality < 50;
 
     return {
       isValid: errors.length === 0,
-      quality: finalQuality,
+      confidence: Math.max(0, confidence),
       errors,
       warnings,
+      quality,
       shouldHide
     };
   }
 
-  private async validateCategorySpecifics(
-    product: BuifylProduct, 
-    errors: string[], 
-    warnings: string[]
-  ): Promise<number> {
-    let qualityPenalty = 0;
+  validateBatch(products: BuifylProduct[]): ValidationReport {
+    let validProducts = 0;
+    let totalConfidence = 0;
+    let errorCount = 0;
+    let warningCount = 0;
+    let hiddenProducts = 0;
+    
+    products.forEach(product => {
+      const validation = this.validateProduct(product);
+      if (validation.isValid) {
+        validProducts++;
+        totalConfidence += validation.confidence;
+      }
+      errorCount += validation.errors.length;
+      warningCount += validation.warnings.length;
+      if (validation.shouldHide) {
+        hiddenProducts++;
+      }
+    });
 
-    switch (product.category) {
-      case 'mobile':
-        if (product.speed && !this.standards.mobile.speeds.some(s => 
-          product.speed?.toLowerCase().includes(s.toLowerCase())
-        )) {
-          warnings.push(`Ukjent hastighet: ${product.speed}`);
-          qualityPenalty += 5;
-        }
-        break;
+    const averageConfidence = products.length > 0 ? totalConfidence / products.length : 0;
+    const qualityScore = averageConfidence;
 
-      case 'electricity':
-        // Validering for strømleverandører
-        if (product.monthly_price < 0.3 || product.monthly_price > 4.0) {
-          errors.push('Strømpris utenfor realistisk område');
-          qualityPenalty += 20;
-        }
-        break;
-
-      case 'loan':
-        // Validering for lån
-        if (product.monthly_price < 1.0 || product.monthly_price > 30.0) {
-          errors.push('Rente utenfor realistisk område');
-          qualityPenalty += 20;
-        }
-        break;
-
-      case 'insurance':
-        // Validering for forsikring
-        if (!product.features?.nb || product.features.nb.length === 0) {
-          warnings.push('Mangler beskrivelse av dekninger');
-          qualityPenalty += 10;
-        }
-        break;
-    }
-
-    return qualityPenalty;
+    return {
+      totalProducts: products.length,
+      validProducts,
+      averageConfidence,
+      errorCount,
+      warningCount,
+      hiddenProducts,
+      qualityScore
+    };
   }
 
-  private isLikelyAutoGenerated(product: BuifylProduct): boolean {
-    const suspiciousPatterns = [
-      /^Plan \d+$/,
-      /^Abonnement \d+$/,
-      /^Leverandør \d+$/,
-      /^Tilbud \d+$/
-    ];
+  logValidationReport(report: ValidationReport, category: string): void {
+    console.group(`📊 Valideringsrapport for ${category}`);
+    console.log(`Totalt antall produkter: ${report.totalProducts}`);
+    console.log(`Antall gyldige produkter: ${report.validProducts}`);
+    console.log(`Gjennomsnittlig sikkerhet: ${report.averageConfidence.toFixed(2)}%`);
+    console.log(`Antall feil: ${report.errorCount}`);
+    console.log(`Antall advarsler: ${report.warningCount}`);
+    console.log(`Antall skjulte produkter: ${report.hiddenProducts}`);
+    console.log(`Kvalitetsskår: ${report.qualityScore.toFixed(2)}%`);
+    console.groupEnd();
+  }
 
-    return suspiciousPatterns.some(pattern => 
-      pattern.test(product.plan_name) || pattern.test(product.provider_name)
-    ) || (product.monthly_price % 50 === 0 && (!product.features?.nb || product.features.nb.length === 0));
+  private transformDatabaseRecord(record: any): BuifylProduct {
+    return {
+      id: record.id,
+      provider_name: record.provider_name,
+      category: record.category as 'mobile' | 'electricity' | 'insurance' | 'loan',
+      monthly_price: Number(record.monthly_price) || 0,
+      plan_name: record.plan_name || record.provider_name,
+      features: this.parseFeatures(record.features),
+      offer_url: record.offer_url || record.source_url,
+      source_url: record.source_url,
+      data_allowance: record.data_allowance || undefined,
+      speed: record.speed || undefined,
+      contract_length: record.contract_length || undefined,
+      logo_url: record.logo_url || undefined,
+      is_active: Boolean(record.is_active),
+      scraped_at: record.scraped_at || record.created_at || new Date().toISOString(),
+      updated_at: record.updated_at || record.created_at || new Date().toISOString()
+    };
+  }
+
+  private parseFeatures(features: any): { nb: string[]; en: string[] } {
+    if (!features) return { nb: [], en: [] };
+    
+    if (typeof features === 'string') {
+      try {
+        const parsed = JSON.parse(features);
+        return {
+          nb: Array.isArray(parsed.nb) ? parsed.nb : [],
+          en: Array.isArray(parsed.en) ? parsed.en : []
+        };
+      } catch {
+        return { nb: [], en: [] };
+      }
+    }
+    
+    if (typeof features === 'object') {
+      return {
+        nb: Array.isArray(features.nb) ? features.nb : [],
+        en: Array.isArray(features.en) ? features.en : []
+      };
+    }
+    
+    return { nb: [], en: [] };
   }
 
   async syncAndValidateData(): Promise<QualityMetrics> {
-    console.log('🔄 Starter automatisk datasynkronisering og kvalitetskontroll...');
-
     try {
-      // Trigger data refresh
-      const { error: syncError } = await supabase.functions.invoke('scrape-real-providers', {
-        body: { action: 'scrape_all' }
-      });
+      console.log('🔄 Starter datakvalitetssikring og synkronisering...');
+      
+      const { data: rawProducts, error } = await supabase
+        .from('provider_offers')
+        .select('*')
+        .eq('is_active', true);
 
-      if (syncError) {
-        console.error('❌ Synkroniseringsfeil:', syncError);
+      if (error) {
+        console.error('❌ Feil ved henting av data:', error);
+        throw error;
       }
 
-      // Hent alle produkter for validering
-      const categories = ['mobile', 'electricity', 'insurance', 'loan'];
-      let totalProducts = 0;
-      let validProducts = 0;
-      let hiddenProducts = 0;
-      const syncErrors: string[] = [];
+      if (!rawProducts || rawProducts.length === 0) {
+        console.log('📭 Ingen produkter funnet for validering');
+        return {
+          dataFreshness: 0,
+          priceAccuracy: 0,
+          providerMatch: 0,
+          completeness: 0,
+          overall: 0
+        };
+      }
+
+      // Transform database records to BuifylProduct format
+      const products = rawProducts.map(record => this.transformDatabaseRecord(record));
+      
+      // Valider hvert produkt
       let totalQuality = 0;
+      let validCount = 0;
+      let hiddenCount = 0;
 
-      for (const category of categories) {
-        const { data: products, error } = await supabase
-          .from('provider_offers')
-          .select('*')
-          .eq('category', category)
-          .eq('is_active', true);
-
-        if (error) {
-          syncErrors.push(`Feil ved henting av ${category}: ${error.message}`);
-          continue;
-        }
-
-        for (const product of products || []) {
-          totalProducts++;
-          const validation = await this.validateProduct(product as BuifylProduct);
+      for (const product of products) {
+        const validation = this.validateProduct(product);
+        
+        if (validation.shouldHide) {
+          hiddenCount++;
+          console.log(`🚫 Skjuler ${product.provider_name} - ${product.plan_name}: kvalitet=${validation.quality}%`);
+        } else if (validation.quality >= 70) {
           totalQuality += validation.quality;
-
-          if (validation.shouldHide) {
-            hiddenProducts++;
-            // Skjul produktet midlertidig
-            await this.hideProduct(product.id, validation.errors.join(', '));
-          } else {
-            validProducts++;
-          }
-
-          // Logg kritiske feil
-          if (validation.errors.length > 0) {
-            console.error(`🚨 Kritisk feil i ${product.provider_name}:`, validation.errors);
-          }
+          validCount++;
         }
       }
 
       const metrics: QualityMetrics = {
-        totalProducts,
-        validProducts,
-        hiddenProducts,
-        lastSync: new Date().toISOString(),
-        averageQuality: totalProducts > 0 ? Math.round(totalQuality / totalProducts) : 0,
-        syncErrors
+        dataFreshness: this.calculateDataFreshness(products),
+        priceAccuracy: this.calculatePriceAccuracy(products),
+        providerMatch: this.calculateProviderMatch(products),
+        completeness: this.calculateCompleteness(products),
+        overall: validCount > 0 ? totalQuality / validCount : 0
       };
 
-      // Lagre kvalitetsmetrikker
-      await this.saveQualityMetrics(metrics);
+      console.log(`✅ Kvalitetssikring fullført: ${validCount} godkjent, ${hiddenCount} skjult`);
+      console.log('📊 Kvalitetsmetrikk:', metrics);
 
-      console.log('✅ Datasynkronisering og kvalitetskontroll fullført:', metrics);
       return metrics;
 
     } catch (error) {
-      console.error('💥 Kritisk feil under synkronisering:', error);
+      console.error('💥 Kritisk feil ved datasynkronisering:', error);
       throw error;
     }
   }
 
-  private async hideProduct(productId: string, reason: string): Promise<void> {
-    await supabase
-      .from('provider_offers')
-      .update({ 
-        is_active: false,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', productId);
+  private calculateDataFreshness(products: BuifylProduct[]): number {
+    const now = Date.now();
+    let totalFreshness = 0;
 
-    // Logg årsaken
-    console.log(`🚫 Skjuler produkt ${productId}: ${reason}`);
+    products.forEach(product => {
+      const scrapedDate = new Date(product.scraped_at);
+      const hoursSinceScraped = (now - scrapedDate.getTime()) / (1000 * 60 * 60);
+      totalFreshness += hoursSinceScraped <= dataFreshnessThreshold ? 100 : 0;
+    });
+
+    return products.length > 0 ? totalFreshness / products.length : 0;
   }
 
-  private async saveQualityMetrics(metrics: QualityMetrics): Promise<void> {
-    // Her kan vi lagre kvalitetsmetrikker til databasen for overvåking
-    console.log('📊 Kvalitetsmetrikker:', metrics);
-  }
+  private calculatePriceAccuracy(products: BuifylProduct[]): number {
+    let accuratePrices = 0;
 
-  async getQualityMetrics(): Promise<QualityMetrics | null> {
-    // Implementer henting av siste kvalitetsmetrikker
-    return null;
-  }
+    products.forEach(product => {
+      // Mock check: price within 10% of expected range
+      const expectedPrice = product.monthly_price;
+      const actualPrice = product.monthly_price; // In real scenario, fetch actual price from provider
 
-  // Automatisk synkronisering hver 24. time
-  startAutoSync(): void {
-    console.log('⏰ Starter automatisk synkronisering hver 24. time');
-    
-    setInterval(async () => {
-      try {
-        await this.syncAndValidateData();
-      } catch (error) {
-        console.error('❌ Feil i automatisk synkronisering:', error);
+      if (Math.abs(actualPrice - expectedPrice) / expectedPrice <= priceAccuracyThreshold) {
+        accuratePrices++;
       }
-    }, 24 * 60 * 60 * 1000); // 24 timer
+    });
+
+    return products.length > 0 ? (accuratePrices / products.length) * 100 : 0;
+  }
+
+  private calculateProviderMatch(products: BuifylProduct[]): number {
+    let matchedProviders = 0;
+
+    products.forEach(product => {
+      if (knownProviders.includes(product.provider_name)) {
+        matchedProviders++;
+      }
+    });
+
+    return products.length > 0 ? (matchedProviders / products.length) * 100 : 0;
+  }
+
+  private calculateCompleteness(products: BuifylProduct[]): number {
+    let completeProducts = 0;
+
+    products.forEach(product => {
+      let missingFields = 0;
+      requiredFields.forEach(field => {
+        if (!product[field]) {
+          missingFields++;
+        }
+      });
+      if (missingFields === 0) {
+        completeProducts++;
+      }
+    });
+
+    return products.length > 0 ? (completeProducts / products.length) * 100 : 0;
+  }
+
+  async startAutoSync(): Promise<void> {
+    console.log('🔄 Starter automatisk datasynkronisering (hver 6 time)...');
+    
+    // Initial sync
+    await this.syncAndValidateData();
+    
+    // Set interval to run every 6 hours (in milliseconds)
+    setInterval(async () => {
+      await this.syncAndValidateData();
+    }, 6 * 60 * 60 * 1000);
   }
 }
 

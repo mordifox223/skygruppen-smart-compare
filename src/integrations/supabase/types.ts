@@ -225,42 +225,6 @@ export type Database = {
         }
         Relationships: []
       }
-      scraping_jobs: {
-        Row: {
-          category: string
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          offers_found: number | null
-          provider_name: string
-          started_at: string | null
-          status: string
-        }
-        Insert: {
-          category: string
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          offers_found?: number | null
-          provider_name: string
-          started_at?: string | null
-          status?: string
-        }
-        Update: {
-          category?: string
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          offers_found?: number | null
-          provider_name?: string
-          started_at?: string | null
-          status?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
