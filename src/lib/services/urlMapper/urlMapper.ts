@@ -22,15 +22,10 @@ export class UniversalUrlMapper {
     try {
       console.log(`🔗 Genererer smart URL for ${product.provider_name} - ${product.name}`);
       
-      // Først: Bruk eksisterende direct_link eller offer_url hvis tilgjengelig
+      // Først: Bruk eksisterende direct_link hvis tilgjengelig og gyldig
       if (product.direct_link && this.isValidUrl(product.direct_link)) {
         console.log(`✅ Bruker direct_link: ${product.direct_link}`);
         return this.addTrackingParams(product.direct_link, product);
-      }
-      
-      if (product.offer_url && this.isValidUrl(product.offer_url) && product.offer_url !== product.source_url) {
-        console.log(`✅ Bruker offer_url: ${product.offer_url}`);
-        return this.addTrackingParams(product.offer_url, product);
       }
       
       // Deretter: Generer URL basert på smart template-logikk
@@ -38,6 +33,12 @@ export class UniversalUrlMapper {
       if (generatedUrl) {
         console.log(`✅ Generert smart URL: ${generatedUrl}`);
         return this.addTrackingParams(generatedUrl, product);
+      }
+      
+      // Hvis offer_url er forskjellig fra source_url, bruk den
+      if (product.offer_url && this.isValidUrl(product.offer_url) && product.offer_url !== product.source_url) {
+        console.log(`✅ Bruker offer_url: ${product.offer_url}`);
+        return this.addTrackingParams(product.offer_url, product);
       }
       
       // Fallback til source_url med tracking
@@ -72,7 +73,8 @@ export class UniversalUrlMapper {
       return template.fallbackUrl;
     }
     
-    if (template.requiresSlug && !this.getSmartSlug(product, template)) {
+    const smartSlug = this.getSmartSlug(product, template);
+    if (template.requiresSlug && !smartSlug) {
       console.log(`⚠️ Template krever slug, fallback for ${product.provider_name}`);
       return template.fallbackUrl;
     }
@@ -82,7 +84,7 @@ export class UniversalUrlMapper {
     
     // Erstatt placeholders
     url = url.replace('{productId}', product.productId || '');
-    url = url.replace('{slug}', this.getSmartSlug(product, template) || '');
+    url = url.replace('{slug}', smartSlug || '');
     url = url.replace('{id}', product.id || '');
     
     return url;
@@ -92,23 +94,33 @@ export class UniversalUrlMapper {
    * Generer smart slug basert på leverandør og template-type
    */
   private static getSmartSlug(product: ProductInfo, template: UrlTemplate): string {
-    const name = product.plan_name || product.name;
+    const planName = product.plan_name || product.name;
     const generator = template.urlGenerator || 'standard';
     
     console.log(`🧠 Generating smart slug for ${product.provider_name} using ${generator} generator`);
-    console.log(`📝 Plan name: "${name}"`);
+    console.log(`📝 Plan name: "${planName}"`);
     
     switch (generator) {
       case 'ice':
-        return this.generateIceSlug(name);
+        return this.generateIceSlug(planName);
       case 'talkmore':
-        return this.generateTalkmoreSlug(name);
+        return this.generateTalkmoreSlug(planName);
       case 'onecall':
-        return this.generateOneCallSlug(name);
+        return this.generateOneCallSlug(planName);
       case 'mycall':
-        return this.generateMyCallSlug(name);
+        return this.generateMyCallSlug(planName);
+      case 'chilimobil':
+        return this.generateChilimobilSlug(planName);
+      case 'happybytes':
+        return this.generateHappybytesSlug(planName);
+      case 'plussmobil':
+        return this.generatePlussmobilSlug(planName);
+      case 'saga':
+        return this.generateSagaSlug(planName);
+      case 'release':
+        return this.generateReleaseSlug(planName);
       default:
-        return this.slugify(name);
+        return this.generateStandardSlug(planName);
     }
   }
   
@@ -181,7 +193,113 @@ export class UniversalUrlMapper {
    */
   private static generateMyCallSlug(planName: string): string {
     console.log(`📱 Generating MyCall slug from: "${planName}"`);
-    // MyCall bruker productId i URL, så vi returnerer en placeholder
+    return this.slugify(planName);
+  }
+  
+  /**
+   * Chilimobil-spesifikk slug
+   */
+  private static generateChilimobilSlug(planName: string): string {
+    console.log(`🌶️ Generating Chilimobil slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^Chilimobil\s*/i, '').trim();
+    
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `abonnement-${amount}${unit}`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * Happybytes-spesifikk slug
+   */
+  private static generateHappybytesSlug(planName: string): string {
+    console.log(`😊 Generating Happybytes slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^Happybytes\s*/i, '').trim();
+    
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `${amount}-${unit}-abonnement`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * PlussMobil-spesifikk slug
+   */
+  private static generatePlussmobilSlug(planName: string): string {
+    console.log(`➕ Generating PlussMobil slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^PlussMobil\s*/i, '').trim();
+    
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `mobil-${amount}${unit}`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * Saga-spesifikk slug
+   */
+  private static generateSagaSlug(planName: string): string {
+    console.log(`⚔️ Generating Saga slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^Saga\s*/i, '').trim();
+    
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `saga-${amount}${unit}`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * Release-spesifikk slug
+   */
+  private static generateReleaseSlug(planName: string): string {
+    console.log(`🚀 Generating Release slug from: "${planName}"`);
+    
+    let cleanName = planName.replace(/^Release\s*/i, '').trim();
+    
+    const dataMatch = cleanName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `${amount}${unit}-abonnement`;
+    }
+    
+    return this.slugify(cleanName);
+  }
+  
+  /**
+   * Standard slug-generering
+   */
+  private static generateStandardSlug(planName: string): string {
+    console.log(`🔧 Generating standard slug from: "${planName}"`);
+    
+    // Check for data plans først
+    const dataMatch = planName.match(/(\d+)\s*(gb|mb)/i);
+    if (dataMatch) {
+      const amount = dataMatch[1];
+      const unit = dataMatch[2].toLowerCase();
+      return `${amount}-${unit}`;
+    }
+    
     return this.slugify(planName);
   }
   
