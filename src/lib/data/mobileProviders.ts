@@ -18,7 +18,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['Unlimited data in Norway', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
     },
     url: 'https://www.telia.no',
-    offerUrl: 'https://www.telia.no/mobilabonnement',
+    offerUrl: 'https://www.telia.no/mobilabonnement/smart-unlimited',
     lastUpdated: new Date()
   },
   {
@@ -37,7 +37,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['15GB data', 'Unlimited calls', '5G network', '10GB roaming in EU/EEA']
     },
     url: 'https://www.telenor.no',
-    offerUrl: 'https://www.telenor.no/privat/mobilabonnement',
+    offerUrl: 'https://www.telenor.no/privat/mobilabonnement/smart-15gb',
     lastUpdated: new Date()
   },
   {
@@ -56,7 +56,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['Unlimited data (10GB at full speed)', 'Unlimited calls', 'Data rollover', 'EU/EEA roaming']
     },
     url: 'https://www.ice.no',
-    offerUrl: 'https://www.ice.no/abonnement',
+    offerUrl: 'https://www.ice.no/abonnement/ice-smart',
     lastUpdated: new Date()
   },
   {
@@ -75,7 +75,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['15GB data', 'Unlimited calls', '5G network', 'EU/EEA roaming']
     },
     url: 'https://www.onecall.no',
-    offerUrl: 'https://www.onecall.no/mobilabonnement',
+    offerUrl: 'https://www.onecall.no/mobilabonnement/smart-15gb',
     lastUpdated: new Date()
   },
   {
@@ -94,7 +94,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['6GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
     },
     url: 'https://www.talkmore.no',
-    offerUrl: 'https://www.talkmore.no/mobilabonnement',
+    offerUrl: 'https://www.talkmore.no/mobilabonnement/smart-6gb',
     lastUpdated: new Date()
   },
   {
@@ -113,7 +113,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['8GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
     },
     url: 'https://chilimobil.no',
-    offerUrl: 'https://chilimobil.no/abonnement',
+    offerUrl: 'https://chilimobil.no/abonnement/smart-8gb',
     lastUpdated: new Date()
   },
   {
@@ -132,7 +132,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Telenor network']
     },
     url: 'https://happybytes.no',
-    offerUrl: 'https://happybytes.no/mobilabonnement',
+    offerUrl: 'https://happybytes.no/partner/mobilabonnement_pp/',
     lastUpdated: new Date()
   },
   {
@@ -151,7 +151,7 @@ export const getMobileProviders = (): Provider[] => [
       en: ['5GB data', 'Unlimited calls', 'EU/EEA roaming', 'Cheap international calling']
     },
     url: 'https://lycamobile.no',
-    offerUrl: 'https://lycamobile.no/mobilabonnement',
+    offerUrl: 'https://lycamobile.no/mobilabonnement/smart-5gb',
     lastUpdated: new Date()
   }
 ];

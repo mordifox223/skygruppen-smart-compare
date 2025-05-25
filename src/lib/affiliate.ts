@@ -1,4 +1,3 @@
-
 import { Provider } from './types';
 import { isUrlValid } from './validation';
 
@@ -31,34 +30,6 @@ export const buildAffiliateLink = (provider: Provider): string => {
     
     // Add timestamp for unique tracking
     url.searchParams.set('utm_term', Date.now().toString());
-    
-    // Category-specific URL enhancements for better targeting
-    switch (provider.category) {
-      case 'mobile':
-        // Ensure mobile plans land on subscription pages
-        if (!url.pathname.includes('abonnement') && !url.pathname.includes('mobilabonnement')) {
-          url.searchParams.set('landing', 'mobile_plans');
-        }
-        break;
-      case 'electricity':
-        // Ensure electricity providers land on order/signup pages
-        if (!url.pathname.includes('bestill') && !url.pathname.includes('strom')) {
-          url.searchParams.set('landing', 'electricity_order');
-        }
-        break;
-      case 'insurance':
-        // Ensure insurance providers land on quote/offer pages
-        if (!url.pathname.includes('forsikring') && !url.pathname.includes('tilbud')) {
-          url.searchParams.set('landing', 'insurance_quote');
-        }
-        break;
-      case 'loan':
-        // Ensure loan providers land on application pages
-        if (!url.pathname.includes('laan') && !url.pathname.includes('soknad')) {
-          url.searchParams.set('landing', 'loan_application');
-        }
-        break;
-    }
     
     console.log(`Built affiliate link for ${provider.name}:`, url.toString());
     return url.toString();
