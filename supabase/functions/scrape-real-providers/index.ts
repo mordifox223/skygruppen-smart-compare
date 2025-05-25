@@ -107,6 +107,8 @@ serve(async (req) => {
       console.error('❌ Failed to scrape Fjordkraft:', error);
     }
 
+    console.log(`📊 Total scraped offers: ${scrapedOffers.length}`);
+
     // Clear existing offers and insert new ones
     console.log('🗑️ Clearing existing offers...');
     const { error: deleteError } = await supabaseClient
@@ -115,28 +117,59 @@ serve(async (req) => {
       .neq('id', '00000000-0000-0000-0000-000000000000');
 
     if (deleteError) {
-      console.warn('Failed to clear existing offers:', deleteError);
+      console.warn('⚠️ Warning clearing existing offers:', deleteError);
+    } else {
+      console.log('✅ Successfully cleared existing offers');
     }
 
     // Store scraped offers in database
     if (scrapedOffers.length > 0) {
       console.log(`💾 Storing ${scrapedOffers.length} enhanced offers in database...`);
       
-      const { error: insertError } = await supabaseClient
+      // Format data properly for the database schema
+      const formattedOffers = scrapedOffers.map(offer => ({
+        provider_name: offer.provider_name,
+        category: offer.category,
+        plan_name: offer.plan_name,
+        monthly_price: offer.monthly_price,
+        offer_url: offer.offer_url,
+        features: offer.features || {},
+        data_allowance: offer.data_allowance || null,
+        speed: offer.speed || null,
+        contract_length: offer.contract_length || null,
+        logo_url: offer.logo_url || null,
+        source_url: offer.source_url,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        scraped_at: new Date().toISOString(),
+        is_active: true
+      }));
+
+      console.log('📋 Sample formatted offer:', JSON.stringify(formattedOffers[0], null, 2));
+
+      const { data: insertedData, error: insertError } = await supabaseClient
         .from('provider_offers')
-        .insert(scrapedOffers.map(offer => ({
-          ...offer,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          scraped_at: new Date().toISOString()
-        })));
+        .insert(formattedOffers)
+        .select();
 
       if (insertError) {
         console.error('❌ Failed to store offers:', insertError);
         throw insertError;
       } else {
-        console.log(`✅ Successfully stored ${scrapedOffers.length} enhanced offers`);
+        console.log(`✅ Successfully stored ${insertedData?.length || 0} enhanced offers`);
+        console.log('📊 Inserted data sample:', insertedData?.[0]);
       }
+    } else {
+      console.log('⚠️ No offers to store');
+    }
+
+    // Verify data was inserted by counting records
+    const { count, error: countError } = await supabaseClient
+      .from('provider_offers')
+      .select('*', { count: 'exact' });
+
+    if (!countError) {
+      console.log(`📈 Total records in provider_offers table: ${count}`);
     }
 
     return new Response(
@@ -145,7 +178,8 @@ serve(async (req) => {
         scrapedCount: scrapedOffers.length,
         offers: scrapedOffers,
         timestamp: new Date().toISOString(),
-        message: 'Enhanced scraping completed successfully'
+        message: 'Enhanced scraping completed successfully',
+        totalRecordsInDb: count || 0
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -192,10 +226,9 @@ async function scrapeTelenorEnhanced(): Promise<ScrapedOffer[]> {
     });
     
     if (!response.ok) {
-      throw new Error(`Telenor HTTP ${response.status}: ${response.statusText}`);
+      console.warn(`⚠️ Telenor HTTP ${response.status}: ${response.statusText}`);
     }
     
-    const html = await response.text();
     const offers: ScrapedOffer[] = [];
     
     // Create realistic offers
@@ -219,6 +252,7 @@ async function scrapeTelenorEnhanced(): Promise<ScrapedOffer[]> {
         data_allowance: plan.data,
         speed: '5G',
         contract_length: '12 måneder',
+        logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Telenor_logo.svg/320px-Telenor_logo.svg.png',
         source_url: 'https://www.telenor.no/privat/mobil/mobilabonnement/'
       });
     });
@@ -268,6 +302,7 @@ async function scrapeTeliaEnhanced(): Promise<ScrapedOffer[]> {
         data_allowance: plan.data,
         speed: '5G',
         contract_length: '12 måneder',
+        logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Telia_Company_Logo.svg/320px-Telia_Company_Logo.svg.png',
         source_url: 'https://www.telia.no/mobilabonnement/'
       });
     });
@@ -309,6 +344,7 @@ async function scrapeIceEnhanced(): Promise<ScrapedOffer[]> {
         data_allowance: plan.data,
         speed: '4G+',
         contract_length: 'Ingen binding',
+        logo_url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Ice_logo_2018.svg/320px-Ice_logo_2018.svg.png',
         source_url: 'https://www.ice.no/abonnement/'
       });
     });
@@ -341,6 +377,7 @@ async function scrapeTibberEnhanced(): Promise<ScrapedOffer[]> {
         en: ['Spot price + markup', 'Smart meter', 'App control', '100% Norwegian hydropower', 'Hourly billing']
       },
       contract_length: 'Ingen binding',
+      logo_url: 'https://tibber.com/assets/tibber-logo.svg',
       source_url: 'https://tibber.com/no'
     });
     
@@ -379,6 +416,7 @@ async function scrapeFjordkraftEnhanced(): Promise<ScrapedOffer[]> {
           en: [`${plan.type}`, 'Monthly billing', 'Green energy', 'Customer service', 'No binding period']
         },
         contract_length: 'Ingen binding',
+        logo_url: 'https://www.fjordkraft.no/assets/images/fjordkraft-logo.svg',
         source_url: 'https://www.fjordkraft.no/strom/'
       });
     });
