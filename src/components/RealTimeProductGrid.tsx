@@ -4,7 +4,8 @@ import { realTimeScrapingService } from '@/lib/services/realTimeScraper/RealTime
 import type { ScrapedProduct } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
 import RealTimeProductCard from './RealTimeProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Zap } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Zap } from 'lucide-react';
 
 interface RealTimeProductGridProps {
   category: string;
@@ -36,44 +37,62 @@ const RealTimeProductGrid: React.FC<RealTimeProductGridProps> = ({ category }) =
   const [products, setProducts] = useState<ScrapedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [scraping, setScraping] = useState(false);
 
-  const loadAndStoreProducts = async () => {
+  const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`🔄 Starter automatisk sanntidsskraping for ${category}...`);
+      console.log(`🔄 Laster sanntidsprodukter for ${category}...`);
       
-      // Start real-time scraping and automatically store in database
+      // Start real-time scraping for this category
       const scrapedProducts = await realTimeScrapingService.scrapeAllProviders(category);
       setProducts(scrapedProducts);
       
-      console.log(`✅ Automatisk lagret ${scrapedProducts.length} sanntidsprodukter for ${category} i databasen`);
+      console.log(`✅ Lastet ${scrapedProducts.length} sanntidsprodukter for ${category}`);
       
     } catch (err) {
-      console.error('Feil ved automatisk sanntidsskraping:', err);
-      setError('Kunne ikke laste produkter automatisk');
+      console.error('Feil ved lasting av sanntidsprodukter:', err);
+      setError('Kunne ikke laste produkter');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleManualScrape = async () => {
+    try {
+      setScraping(true);
+      console.log('🚀 Starter manuell sanntidsskraping...');
+      
+      const scrapedProducts = await realTimeScrapingService.scrapeAllProviders(category);
+      setProducts(scrapedProducts);
+      
+      console.log(`✅ Hentet ${scrapedProducts.length} nye produkter`);
+      
+    } catch (error) {
+      console.error('Feil ved manuell skraping:', error);
+      setError('Feil ved henting av nye produkter');
+    } finally {
+      setScraping(false);
+    }
+  };
+
   useEffect(() => {
-    // Initial load when component mounts
-    loadAndStoreProducts();
+    loadProducts();
     
-    // Set up automatic refresh every 30 minutes
-    const interval = setInterval(loadAndStoreProducts, 30 * 60 * 1000);
-    
-    return () => clearInterval(interval);
+    // Start real-time scraping service
+    realTimeScrapingService.startRealTimeScraping(category);
   }, [category]);
 
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-yellow-500 animate-pulse" />
-          <h2 className="text-xl font-semibold text-gray-900">Henter sanntidsdata automatisk...</h2>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-yellow-500" />
+            <h2 className="text-xl font-semibold text-gray-900">Sanntidsdata hentes...</h2>
+          </div>
         </div>
         <LoadingSkeleton />
       </div>
@@ -84,24 +103,64 @@ const RealTimeProductGrid: React.FC<RealTimeProductGridProps> = ({ category }) =
     return (
       <div className="text-center py-12">
         <div className="max-w-md mx-auto">
-          <h3 className="text-xl font-semibold mb-2 text-red-600">Automatisk oppdatering mislyktes</h3>
+          <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
           <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">Systemet vil prøve igjen automatisk om 30 minutter.</p>
+          <Button onClick={loadProducts} variant="outline">
+            <RefreshCw size={16} className="mr-2" />
+            Prøv igjen
+          </Button>
         </div>
       </div>
     );
   }
 
+  if (products.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <div className="max-w-md mx-auto">
+          <h3 className="text-xl font-semibold mb-2">Ingen produkter funnet</h3>
+          <p className="text-gray-600 mb-4">
+            Ingen produkter ble funnet for denne kategorien. Prøv å oppdatere.
+          </p>
+          <Button onClick={handleManualScrape} disabled={scraping}>
+            <RefreshCw size={16} className={`mr-2 ${scraping ? 'animate-spin' : ''}`} />
+            {scraping ? 'Henter produkter...' : 'Hent nye produkter'}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Group products by provider for better organization
+  const groupedProducts = products.reduce((acc, product) => {
+    if (!acc[product.provider]) {
+      acc[product.provider] = [];
+    }
+    acc[product.provider].push(product);
+    return acc;
+  }, {} as Record<string, ScrapedProduct[]>);
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Zap className="h-5 w-5 text-green-500" />
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Database oppdatert automatisk</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            {products.length} tilbud lagret fra {new Set(products.map(p => p.provider)).size} leverandører
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-yellow-500" />
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Sanntidsdata fra leverandører</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {products.length} tilbud fra {Object.keys(groupedProducts).length} leverandører
+            </p>
+          </div>
         </div>
+        <Button 
+          onClick={handleManualScrape} 
+          disabled={scraping}
+          size="sm"
+          variant="outline"
+        >
+          <RefreshCw size={14} className={`mr-1 ${scraping ? 'animate-spin' : ''}`} />
+          {scraping ? 'Oppdaterer...' : 'Oppdater'}
+        </Button>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

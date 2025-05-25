@@ -931,7 +931,7 @@ class RealTimeScrapingService {
       ? this.providers.filter(p => p.category === category)
       : this.providers;
     
-    console.log(`🌐 Starting automated scraping for ${providersToScrape.length} providers...`);
+    console.log(`🌐 Starting scraping for ${providersToScrape.length} providers...`);
     
     const allProducts: ScrapedProduct[] = [];
     
@@ -940,23 +940,21 @@ class RealTimeScrapingService {
         const products = await this.scrapeProvider(provider);
         allProducts.push(...products);
         
-        // Store products in database immediately
+        // Store products in database
         await this.storeProducts(products);
         
         // Small delay to avoid overwhelming servers
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error(`Failed to scrape ${provider.name}:`, error);
       }
     }
     
-    console.log(`✅ Automated scraping completed. Stored ${allProducts.length} products in database.`);
+    console.log(`✅ Completed scraping. Found ${allProducts.length} total products.`);
     return allProducts;
   }
 
   private async storeProducts(products: ScrapedProduct[]): Promise<void> {
-    console.log(`💾 Storing ${products.length} products in database...`);
-
     for (const product of products) {
       try {
         const offerData = {
@@ -975,7 +973,6 @@ class RealTimeScrapingService {
           is_active: true
         };
 
-        // Check if offer exists
         const { data: existingOffer } = await supabase
           .from('provider_offers')
           .select('id')
@@ -984,31 +981,19 @@ class RealTimeScrapingService {
           .single();
 
         if (existingOffer) {
-          // Update existing offer
-          const { error } = await supabase
+          await supabase
             .from('provider_offers')
             .update(offerData)
             .eq('id', existingOffer.id);
-            
-          if (error) {
-            console.error(`Failed to update offer ${product.product}:`, error);
-          }
         } else {
-          // Insert new offer
-          const { error } = await supabase
+          await supabase
             .from('provider_offers')
             .insert(offerData);
-            
-          if (error) {
-            console.error(`Failed to insert offer ${product.product}:`, error);
-          }
         }
       } catch (error) {
         console.error(`Failed to store product ${product.product}:`, error);
       }
     }
-    
-    console.log(`✅ Successfully stored products in database`);
   }
 
   private extractNumericPrice(priceString: string): number {
@@ -1016,19 +1001,15 @@ class RealTimeScrapingService {
     return match ? parseFloat(match[1].replace(',', '.')) : 0;
   }
 
-  async startAutomatedScraping(category?: string): Promise<void> {
-    console.log('🚀 Starting automated real-time scraping service...');
+  async startRealTimeScraping(category?: string): Promise<void> {
+    console.log('🚀 Starting real-time scraping service...');
     
-    // Initial scraping
     await this.scrapeAllProviders(category);
     
-    // Set up interval for automatic scraping every 30 minutes
     setInterval(async () => {
-      console.log('🔄 Running scheduled automated scraping...');
+      console.log('🔄 Running scheduled scraping...');
       await this.scrapeAllProviders(category);
     }, 30 * 60 * 1000);
-    
-    console.log('✅ Automated scraping service is now running (30 min intervals)');
   }
 
   getProvidersByCategory(category: string): ProviderConfig[] {

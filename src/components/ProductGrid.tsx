@@ -1,11 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { enhancedBuifylService, EnhancedBuifylProduct } from '@/lib/services/enhancedBuifylService';
-import { realTimeScrapingService } from '@/lib/services/realTimeScraper/RealTimeScrapingService';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from './ProductCard';
+import RealTimeProductGrid from './RealTimeProductGrid';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Database, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, Zap, Database } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ProductGridProps {
   category: string;
@@ -37,52 +39,50 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
   const [products, setProducts] = useState<EnhancedBuifylProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      console.log(`Laster produkter fra database for ${category}...`);
+      console.log(`Laster alle produkter for ${category}...`);
       
       const allProducts = await enhancedBuifylService.getAllProducts(category);
       setProducts(allProducts);
-      setLastRefresh(new Date());
       
     } catch (err) {
       console.error('Feil ved lasting av produkter:', err);
-      setError('Feil ved lasting av produkter fra database');
+      setError('Feil ved lasting av produkter');
     } finally {
       setLoading(false);
     }
   };
 
-  const refreshDataWithScraping = async () => {
+  const handleManualSync = async () => {
     try {
-      console.log('🔄 Starter automatisk oppdatering av sanntidsdata...');
+      setSyncing(true);
+      console.log('Starter manuell synkronisering...');
       
-      // Scrape new data and store in database
-      await realTimeScrapingService.scrapeAllProviders(category);
+      await enhancedBuifylService.triggerDataSync();
       
-      // Wait a bit for data to be stored, then reload
       setTimeout(() => {
         loadProducts();
       }, 2000);
       
     } catch (error) {
-      console.error('Feil ved automatisk oppdatering:', error);
+      console.error('Feil ved manuell synkronisering:', error);
+      setError('Feil ved synkronisering av data');
+    } finally {
+      setSyncing(false);
     }
   };
 
   useEffect(() => {
-    // Initial scraping and loading when component mounts
-    refreshDataWithScraping();
-    
-    // Set up automatic refresh every 30 minutes
-    const interval = setInterval(refreshDataWithScraping, 30 * 60 * 1000);
-    
-    // Set up real-time listener for database changes
+    loadProducts();
+
+    enhancedBuifylService.startAutoSync();
+
     const channel = supabase
       .channel('realtime-products')
       .on('postgres_changes', {
@@ -91,89 +91,95 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
         table: 'provider_offers',
         filter: `category=eq.${category}`
       }, (payload) => {
-        console.log('Real-time database oppdatering mottatt:', payload);
+        console.log('Real-time oppdatering mottatt:', payload);
         loadProducts();
       })
       .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [category]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="h-5 w-5 text-blue-500 animate-spin" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Oppdaterer produktdata automatisk...</h2>
-            <p className="text-sm text-gray-600 mt-1">Henter nyeste tilbud fra leverandører</p>
-          </div>
-        </div>
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="max-w-md mx-auto">
-          <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <p className="text-sm text-gray-500">Systemet vil automatisk prøve igjen om 30 minutter.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (products.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="max-w-md mx-auto">
-          <h3 className="text-xl font-semibold mb-2">Ingen produkter tilgjengelig</h3>
-          <p className="text-gray-600 mb-4">
-            Systemet oppdaterer produkter automatisk. Nye tilbud vil vises snart.
-          </p>
-          <p className="text-sm text-gray-500">
-            Automatisk oppdatering hver 30. minutt
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Database className="h-5 w-5 text-green-500" />
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              {products.length} aktuelle tilbud
-              {lastRefresh && (
-                <span className="ml-2 text-gray-400">
-                  • Sist oppdatert: {lastRefresh.toLocaleTimeString('no-NO')}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
+      <Tabs defaultValue="realtime" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="realtime" className="flex items-center gap-2">
+            <Zap size={16} />
+            Sanntidsdata
+          </TabsTrigger>
+          <TabsTrigger value="database" className="flex items-center gap-2">
+            <Database size={16} />
+            Database
+          </TabsTrigger>
+        </TabsList>
         
-        <div className="text-xs text-gray-400 flex items-center gap-1">
-          <RefreshCw className="h-3 w-3" />
-          Automatisk oppdatering hver 30 min
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map(product => (
-          <ProductCard key={product.id} product={product} />
-        ))}
-      </div>
+        <TabsContent value="realtime" className="mt-6">
+          <RealTimeProductGrid category={category} />
+        </TabsContent>
+        
+        <TabsContent value="database" className="mt-6">
+          {loading ? (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
+              </div>
+              <LoadingSkeleton />
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-xl font-semibold mb-2 text-red-600">Kunne ikke laste produkter</h3>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <Button onClick={loadProducts} variant="outline">
+                  <RefreshCw size={16} className="mr-2" />
+                  Prøv igjen
+                </Button>
+              </div>
+            </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="max-w-md mx-auto">
+                <h3 className="text-xl font-semibold mb-2">Ingen produkter tilgjengelig</h3>
+                <p className="text-gray-600 mb-4">
+                  Vi jobber med å få flere produkter tilgjengelig.
+                </p>
+                <Button onClick={handleManualSync} disabled={syncing}>
+                  <RefreshCw size={16} className={`mr-2 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Synkroniserer...' : 'Oppdater produkter'}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Sammenlign tilbud</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {products.length} tilbud tilgjengelig
+                  </p>
+                </div>
+                <Button 
+                  onClick={handleManualSync} 
+                  disabled={syncing}
+                  size="sm"
+                  variant="outline"
+                >
+                  <RefreshCw size={14} className={`mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                  {syncing ? 'Oppdaterer...' : 'Oppdater'}
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
