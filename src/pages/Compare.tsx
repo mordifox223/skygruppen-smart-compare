@@ -9,7 +9,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';
 import LoadingSpinner from '@/components/LoadingSpinner';
-import { Database, Zap } from 'lucide-react';
+import { Database, Zap, ShoppingCart } from 'lucide-react';
 
 const Compare = () => {
   const { categoryId = 'insurance' } = useParams<{ categoryId: string }>();
@@ -17,6 +17,7 @@ const Compare = () => {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   const categories = getAvailableCategories();
   const category = categories.find(c => c.id === categoryId);
@@ -28,14 +29,21 @@ const Compare = () => {
       const data = await getProviders(categoryId);
       setProviders(data);
       
-      if (data.length === 0) {
-        setError(null); // Don't treat empty data as error
+      if (data.length > 0) {
+        // Find the most recent update time
+        const latestUpdate = Math.max(...data
+          .filter(p => p.lastUpdated)
+          .map(p => new Date(p.lastUpdated).getTime())
+        );
+        if (latestUpdate > 0) {
+          setLastUpdated(new Date(latestUpdate));
+        }
       }
     } catch (err) {
-      console.error('Failed to load providers:', err);
+      console.error('Failed to load providers from Buifyl Shop:', err);
       setError(language === 'nb' 
-        ? 'Teknisk feil ved lasting av data. Prøv igjen senere.' 
-        : 'Technical error loading data. Please try again later.'
+        ? 'Teknisk feil ved lasting av data fra Buifyl Shop. Prøv igjen senere.' 
+        : 'Technical error loading data from Buifyl Shop. Please try again later.'
       );
     } finally {
       setIsLoading(false);
@@ -73,12 +81,16 @@ const Compare = () => {
               {!isLoading && providers.length > 0 && (
                 <div className="mt-4 flex items-center gap-4">
                   <p className="text-sm text-gray-400">
-                    {providers.length} {language === 'nb' ? 'leverandører tilgjengelig' : 'providers available'}
+                    {providers.length} {language === 'nb' ? 'produkter fra Buifyl Shop' : 'products from Buifyl Shop'}
                   </p>
-                  {providers.some(p => p.isValidData !== false) && (
-                    <div className="flex items-center text-green-400 text-sm">
-                      <Zap size={16} className="mr-1" />
-                      {language === 'nb' ? 'Live data' : 'Live data'}
+                  <div className="flex items-center text-green-400 text-sm">
+                    <ShoppingCart size={16} className="mr-1" />
+                    {language === 'nb' ? 'Buifyl Shop' : 'Buifyl Shop'}
+                  </div>
+                  {lastUpdated && (
+                    <div className="flex items-center text-blue-400 text-xs">
+                      <Zap size={12} className="mr-1" />
+                      {language === 'nb' ? 'Sist oppdatert' : 'Last updated'}: {lastUpdated.toLocaleDateString('nb-NO')}
                     </div>
                   )}
                 </div>
@@ -92,7 +104,7 @@ const Compare = () => {
             <div className="flex justify-center items-center py-12">
               <LoadingSpinner size="lg" />
               <span className="ml-3 text-lg">
-                {language === 'nb' ? 'Laster tilbud...' : 'Loading offers...'}
+                {language === 'nb' ? 'Henter produkter fra Buifyl Shop...' : 'Loading products from Buifyl Shop...'}
               </span>
             </div>
           ) : error ? (
@@ -105,19 +117,19 @@ const Compare = () => {
             </div>
           ) : providers.length === 0 ? (
             <div className="text-center py-12">
-              <Database size={48} className="mx-auto text-gray-400 mb-4" />
+              <ShoppingCart size={48} className="mx-auto text-gray-400 mb-4" />
               <h3 className="text-xl font-semibold mb-2">
                 {language === 'nb' ? 'Ingen tilbud tilgjengelig akkurat nå' : 'No offers available right now'}
               </h3>
               <p className="text-gray-600 mb-4">
                 {language === 'nb' 
-                  ? 'Data vil vises automatisk når den hentes fra leverandørene.' 
-                  : 'Data will be displayed automatically when fetched from providers.'}
+                  ? 'Produkter vil vises automatisk når de er tilgjengelige via Buifyl Shop.' 
+                  : 'Products will be displayed automatically when available via Buifyl Shop.'}
               </p>
               <p className="text-sm text-gray-500">
                 {language === 'nb' 
-                  ? 'Vårt system henter nye tilbud regelmessig i bakgrunnen.' 
-                  : 'Our system fetches new offers regularly in the background.'}
+                  ? 'Buifyl Shop oppdaterer produkter automatisk i bakgrunnen.' 
+                  : 'Buifyl Shop updates products automatically in the background.'}
               </p>
             </div>
           ) : (
@@ -139,25 +151,21 @@ const Compare = () => {
                   </p>
                 </div>
                 
-                {/* Data freshness info */}
+                {/* Buifyl Shop info */}
                 {providers.length > 0 && (
                   <div className="bg-white p-4 rounded-lg shadow-sm mt-6">
-                    <h3 className="font-semibold mb-2 text-gray-800">
-                      {language === 'nb' ? 'Om dataene' : 'About the data'}
+                    <h3 className="font-semibold mb-2 text-gray-800 flex items-center">
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      {language === 'nb' ? 'Om produktene' : 'About the products'}
                     </h3>
                     <p className="text-sm text-gray-600">
                       {language === 'nb' 
-                        ? `Vi sammenligner priser fra ${providers.length} leverandører. Data oppdateres automatisk.` 
-                        : `We compare prices from ${providers.length} providers. Data is updated automatically.`}
+                        ? `Vi viser ${providers.length} produkter fra Buifyl Shop. Alle priser oppdateres automatisk.` 
+                        : `We show ${providers.length} products from Buifyl Shop. All prices are updated automatically.`}
                     </p>
-                    {providers.some(p => p.lastUpdated && p.isValidData !== false) && (
+                    {lastUpdated && (
                       <p className="text-xs text-green-600 mt-2">
-                        {language === 'nb' ? 'Sist oppdatert: ' : 'Last updated: '}
-                        {Math.max(...providers.filter(p => p.lastUpdated && p.isValidData !== false)
-                          .map(p => new Date(p.lastUpdated!).getTime())
-                        ) > 0 && new Date(Math.max(...providers.filter(p => p.lastUpdated && p.isValidData !== false)
-                          .map(p => new Date(p.lastUpdated!).getTime())
-                        )).toLocaleDateString('nb-NO')}
+                        {language === 'nb' ? 'Sist oppdatert' : 'Last updated'}: {lastUpdated.toLocaleDateString('nb-NO')} {lastUpdated.toLocaleTimeString('nb-NO', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     )}
                   </div>

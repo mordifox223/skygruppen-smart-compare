@@ -17,7 +17,7 @@ import {
 import {
   Slider
 } from '@/components/ui/slider';
-import { ArrowDown, ArrowUp, Filter, Star, Zap } from 'lucide-react';
+import { ArrowDown, ArrowUp, Filter, Star, ShoppingCart } from 'lucide-react';
 
 interface ComparisonTableProps {
   providers: Provider[];
@@ -96,7 +96,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
           <h2 className="text-2xl font-bold">
-            {language === 'nb' ? 'Sammenlign tilbud' : 'Compare offers'}
+            {language === 'nb' ? 'Sammenlign produkter' : 'Compare products'}
           </h2>
           
           {providers.length > 0 && (
@@ -164,24 +164,24 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
           </div>
         )}
         
-        {/* Provider count and data update info */}
+        {/* Provider count and Buifyl Shop info */}
         {providers.length > 0 && (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-4">
               <p className="text-sm text-gray-600">
                 {language === 'nb' 
-                  ? `Viser ${displayedProviders.length} av ${filteredProviders.length} tilbud` 
-                  : `Showing ${displayedProviders.length} of ${filteredProviders.length} offers`}
+                  ? `Viser ${displayedProviders.length} av ${filteredProviders.length} produkter` 
+                  : `Showing ${displayedProviders.length} of ${filteredProviders.length} products`}
               </p>
-              <div className="flex items-center text-green-600 text-xs">
-                <Zap size={12} className="mr-1" />
-                {language === 'nb' ? 'Live data' : 'Live data'}
+              <div className="flex items-center text-blue-600 text-xs">
+                <ShoppingCart size={12} className="mr-1" />
+                {language === 'nb' ? 'Fra Buifyl Shop' : 'From Buifyl Shop'}
               </div>
             </div>
             <p className="text-xs text-gray-500">
               {language === 'nb' 
-                ? 'Data oppdateres automatisk i bakgrunnen' 
-                : 'Data is updated automatically in the background'}
+                ? 'Produkter oppdateres automatisk av Buifyl Shop' 
+                : 'Products are updated automatically by Buifyl Shop'}
             </p>
           </div>
         )}
@@ -197,15 +197,16 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
           ) : (
             <div className="col-span-full text-center py-8">
               <div className="space-y-3">
+                <ShoppingCart size={48} className="mx-auto text-gray-400" />
                 <div className="text-gray-500">
                   {language === 'nb' 
-                    ? 'Ingen tilbud tilgjengelig for øyeblikket.' 
-                    : 'No offers available at the moment.'}
+                    ? 'Ingen produkter tilgjengelig for øyeblikket.' 
+                    : 'No products available at the moment.'}
                 </div>
                 <div className="text-sm text-gray-400">
                   {language === 'nb' 
-                    ? 'Data vil vises automatisk når den hentes fra leverandørene.' 
-                    : 'Data will be displayed automatically when fetched from providers.'}
+                    ? 'Produkter vil vises automatisk når de er tilgjengelige via Buifyl Shop.' 
+                    : 'Products will be displayed automatically when available via Buifyl Shop.'}
                 </div>
               </div>
             </div>
@@ -224,7 +225,7 @@ const ComparisonTable: React.FC<ComparisonTableProps> = ({ providers: initialPro
               {isLoading ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                language === 'nb' ? 'Vis flere tilbud' : 'Show more offers'
+                language === 'nb' ? 'Vis flere produkter' : 'Show more products'
               )}
             </Button>
           </div>

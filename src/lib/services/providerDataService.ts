@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
-import { realDataService } from './realDataService';
 
 class ProviderDataService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -9,7 +8,7 @@ class ProviderDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      console.log(`Getting providers for ${category} - database only, no fallbacks`);
+      console.log(`Getting providers for ${category} from Buifyl Shop - no fallbacks`);
       
       // Check cache first
       const cached = this.cache.get(category);
@@ -18,52 +17,166 @@ class ProviderDataService {
         return cached.data;
       }
       
-      // Only get real data from Supabase - no fallbacks at all
-      const realProviders = await realDataService.getProviders(category);
-      
-      if (realProviders.length > 0) {
-        console.log(`Using database data for ${category}: ${realProviders.length} providers`);
-        const enhancedProviders = this.enhanceProvidersWithValidation(realProviders);
-        
-        // Cache the results
-        this.cache.set(category, { data: enhancedProviders, timestamp: Date.now() });
-        
-        return enhancedProviders;
+      // Fetch exclusively from Buifyl Shop provider_offers table
+      const { data: offers, error } = await supabase
+        .from('provider_offers')
+        .select('*')
+        .eq('category', category)
+        .eq('is_active', true)
+        .order('monthly_price', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching from Buifyl Shop:', error);
+        return [];
       }
+
+      if (!offers || offers.length === 0) {
+        console.log(`No products found in Buifyl Shop for ${category}`);
+        return [];
+      }
+
+      // Transform Buifyl Shop data to Provider format
+      const providers = this.transformBuifylDataToProviders(offers);
       
-      // If no data in database, return empty array - no fallbacks
-      console.log(`No scraped data found for ${category} in database`);
-      return [];
+      // Cache the results
+      this.cache.set(category, { data: providers, timestamp: Date.now() });
+      
+      console.log(`✅ Loaded ${providers.length} products from Buifyl Shop for ${category}`);
+      return providers;
 
     } catch (error) {
-      console.error(`Error in getProviders for ${category}:`, error);
+      console.error(`Error fetching from Buifyl Shop for ${category}:`, error);
       return [];
     }
   }
 
-  private enhanceProvidersWithValidation(providers: Provider[]): Provider[] {
-    return providers.map(provider => {
-      // Check if data is fresh (within 48 hours)
-      const hoursSinceUpdate = provider.lastUpdated 
-        ? (Date.now() - new Date(provider.lastUpdated).getTime()) / (1000 * 60 * 60)
-        : 999;
+  private transformBuifylDataToProviders(offers: any[]): Provider[] {
+    return offers.map(offer => ({
+      id: offer.id,
+      name: offer.provider_name,
+      category: offer.category as any,
+      logo: offer.logo_url || this.getDefaultLogo(offer.provider_name),
+      price: offer.monthly_price,
+      priceLabel: this.getPriceLabel(offer.category),
+      rating: this.estimateRating(offer.provider_name),
+      features: this.transformFeatures(offer),
+      url: offer.source_url,
+      offerUrl: this.buildBuifylAffiliateUrl(offer),
+      lastUpdated: new Date(offer.scraped_at),
+      isValidData: this.isDataFresh(offer.scraped_at),
+      hasSpecificOffer: !!(offer.direct_link || offer.manual_override_url)
+    }));
+  }
+
+  private buildBuifylAffiliateUrl(offer: any): string {
+    // Use Buifyl Shop's affiliate URL with our tracking
+    let baseUrl = offer.direct_link || offer.offer_url || offer.source_url;
+    
+    try {
+      const url = new URL(baseUrl);
       
-      const isDataFresh = hoursSinceUpdate <= 48;
+      // Add Buifyl Shop tracking parameters
+      url.searchParams.set('utm_source', 'skygruppen');
+      url.searchParams.set('utm_medium', 'buifyl_shop');
+      url.searchParams.set('utm_campaign', offer.category);
+      url.searchParams.set('utm_content', offer.provider_name);
+      url.searchParams.set('buifyl_product_id', offer.id);
       
-      return {
-        ...provider,
-        isValidData: isDataFresh,
-        validationStatus: isDataFresh ? 'current' : `Last updated ${Math.floor(hoursSinceUpdate)} hours ago`,
-        hasSpecificOffer: !!(provider.offerUrl && provider.offerUrl !== provider.url)
-      };
-    });
+      // Add unique click tracking
+      url.searchParams.set('click_id', `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+      
+      return url.toString();
+    } catch (error) {
+      console.error(`Failed to build Buifyl URL for ${offer.provider_name}:`, error);
+      return baseUrl;
+    }
+  }
+
+  private isDataFresh(scrapedAt: string): boolean {
+    const scrapedDate = new Date(scrapedAt);
+    const hoursSinceUpdate = (Date.now() - scrapedDate.getTime()) / (1000 * 60 * 60);
+    return hoursSinceUpdate <= 48; // Fresh if updated within 48 hours
+  }
+
+  private transformFeatures(offer: any): Record<string, string[]> {
+    const features: string[] = [];
+    
+    // Extract features from Buifyl Shop product data
+    if (offer.data_allowance) features.push(offer.data_allowance);
+    if (offer.speed) features.push(offer.speed);
+    if (offer.contract_length) features.push(offer.contract_length);
+    if (offer.plan_name) features.push(offer.plan_name);
+    
+    // Add features from JSONB field
+    if (offer.features && typeof offer.features === 'object' && offer.features !== null) {
+      const featuresObj = offer.features as Record<string, any>;
+      Object.values(featuresObj).forEach(feature => {
+        if (typeof feature === 'string') features.push(feature);
+      });
+    }
+
+    return {
+      nb: features,
+      en: features.map(f => this.translateFeature(f))
+    };
+  }
+
+  private translateFeature(feature: string): string {
+    const translations: Record<string, string> = {
+      'Ingen binding': 'No commitment',
+      'Fast rente': 'Fixed interest',
+      'Fleksible vilkår': 'Flexible terms',
+      'Konkurransedyktig rente': 'Competitive interest',
+      'Rask saksbehandling': 'Fast processing'
+    };
+    return translations[feature] || feature;
+  }
+
+  private getPriceLabel(category: string): Record<string, string> {
+    const labels: Record<string, Record<string, string>> = {
+      mobile: { nb: 'kr/mnd', en: 'NOK/month' },
+      electricity: { nb: 'øre/kWh', en: 'øre/kWh' },
+      power: { nb: 'øre/kWh', en: 'øre/kWh' },
+      insurance: { nb: 'kr/mnd', en: 'NOK/month' },
+      loan: { nb: '% rente', en: '% interest' }
+    };
+    return labels[category] || { nb: 'kr/mnd', en: 'NOK/month' };
+  }
+
+  private estimateRating(providerName: string): number {
+    const ratings: Record<string, number> = {
+      'Sbanken': 4.5,
+      'DNB': 4.2,
+      'Nordea': 4.1,
+      'Talkmore': 4.3,
+      'Telenor': 4.4,
+      'Ice': 4.2,
+      'Tibber': 4.6,
+      'Fjordkraft': 4.1,
+      'Gjensidige': 4.2,
+      'If': 4.4
+    };
+    return ratings[providerName] || 4.0;
+  }
+
+  private getDefaultLogo(providerName: string): string {
+    const logos: Record<string, string> = {
+      'DNB': 'https://www.dnb.no/static/images/dnb-logo.svg',
+      'Sbanken': 'https://www.sbanken.no/globalassets/sbanken-logo.svg',
+      'Nordea': 'https://www.nordea.no/globalassets/nordea-logo.svg',
+      'Talkmore': 'https://www.talkmore.no/static/images/logo.svg',
+      'Telenor': 'https://www.telenor.no/static/images/telenor-logo.svg',
+      'Ice': 'https://www.ice.no/static/images/ice-logo.svg'
+    };
+    return logos[providerName] || '/placeholder.svg';
   }
 
   async getSystemStatus(): Promise<any> {
     try {
+      // Get data from Buifyl Shop system
       const [dataSources, recentJobs] = await Promise.all([
-        realDataService.getDataSources(),
-        realDataService.getScrapingJobs(5)
+        this.getDataSources(),
+        this.getScrapingJobs(5)
       ]);
 
       return {
@@ -73,7 +186,7 @@ class ProviderDataService {
         systemHealth: this.calculateSystemHealth(dataSources, recentJobs)
       };
     } catch (error) {
-      console.error('Error getting system status:', error);
+      console.error('Error getting Buifyl Shop system status:', error);
       return {
         dataSources: [],
         recentJobs: [],
@@ -93,7 +206,39 @@ class ProviderDataService {
     return 'good';
   }
 
-  // Enhanced affiliate click logging with proper error handling
+  private async getDataSources(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('data_sources')
+        .select('*')
+        .eq('is_active', true)
+        .order('reliability_score', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching data sources:', error);
+      return [];
+    }
+  }
+
+  private async getScrapingJobs(limit = 10): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('scraping_jobs')
+        .select('*')
+        .order('started_at', { ascending: false })
+        .limit(limit);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching scraping jobs:', error);
+      return [];
+    }
+  }
+
+  // Enhanced affiliate click logging for Buifyl Shop
   async logAffiliateClick(providerId: string, providerName: string, category: string, targetUrl: string): Promise<void> {
     try {
       const { error } = await supabase
@@ -109,62 +254,16 @@ class ProviderDataService {
         });
 
       if (error) {
-        console.error('Failed to log affiliate click:', error);
+        console.error('Failed to log Buifyl Shop affiliate click:', error);
       } else {
-        console.log('✅ Affiliate click logged successfully:', {
+        console.log('✅ Buifyl Shop affiliate click logged:', {
           provider: providerName,
           category,
           url: targetUrl
         });
-        
-        // Also trigger Google Analytics event if available
-        if (typeof window !== 'undefined' && (window as any).gtag) {
-          (window as any).gtag('event', 'affiliate_click', {
-            event_category: 'engagement',
-            event_label: providerName,
-            custom_parameter_1: category,
-            custom_parameter_2: targetUrl
-          });
-        }
       }
     } catch (error) {
-      console.error('Error logging affiliate click:', error);
-    }
-  }
-
-  // Validate all affiliate URLs for a category
-  async validateAffiliateUrls(category: string): Promise<{ provider: string; url: string; valid: boolean }[]> {
-    try {
-      const providers = await this.getProviders(category);
-      const results = [];
-      
-      for (const provider of providers) {
-        const isValid = await this.testUrl(provider.offerUrl || provider.url);
-        results.push({
-          provider: provider.name,
-          url: provider.offerUrl || provider.url,
-          valid: isValid
-        });
-      }
-      
-      return results;
-    } catch (error) {
-      console.error('Error validating affiliate URLs:', error);
-      return [];
-    }
-  }
-
-  private async testUrl(url: string): Promise<boolean> {
-    try {
-      const response = await fetch(url, { 
-        method: 'HEAD', 
-        mode: 'no-cors',
-        cache: 'no-cache'
-      });
-      return true; // If no error is thrown, URL is accessible
-    } catch (error) {
-      console.error(`URL validation failed for ${url}:`, error);
-      return false;
+      console.error('Error logging Buifyl Shop affiliate click:', error);
     }
   }
 }

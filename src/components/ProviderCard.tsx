@@ -3,7 +3,7 @@ import React from 'react';
 import { Provider } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
 import { Button } from '@/components/ui/button';
-import { Star, ExternalLink, CheckCircle, Clock } from 'lucide-react';
+import { Star, ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
 import { affiliateClickService } from '@/lib/services/affiliateClickService';
@@ -19,7 +19,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
     try {
       const targetUrl = provider.offerUrl || provider.url;
       
-      // Log affiliate click (don't await to avoid delaying redirect)
+      // Log Buifyl Shop affiliate click
       affiliateClickService.logAffiliateClick(
         provider.id, 
         provider.name, 
@@ -27,12 +27,12 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         targetUrl
       );
       
-      console.log(`🔗 Opening ${provider.name} offer:`, targetUrl);
+      console.log(`🔗 Opening ${provider.name} offer via Buifyl Shop:`, targetUrl);
       
       // Open in new tab immediately
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      console.error('Error handling provider click:', error);
+      console.error('Error handling Buifyl Shop provider click:', error);
       // Fallback - still open the link
       window.open(provider.offerUrl || provider.url, '_blank', 'noopener,noreferrer');
     }
@@ -72,15 +72,20 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   return (
     <div className="provider-card border border-gray-200 rounded-lg shadow-sm p-4 flex flex-col h-full bg-white hover:shadow-md transition-shadow">
       
-      {/* Show offer type indicator */}
-      {hasSpecificOffer && (
-        <div className="mb-2">
-          <div className="p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700 flex items-center">
-            <CheckCircle size={12} className="mr-1" />
-            {language === 'nb' ? 'Direkte til tilbud' : 'Direct to offer'}
-          </div>
+      {/* Show Buifyl Shop indicator */}
+      <div className="mb-2">
+        <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 flex items-center">
+          <ShoppingCart size={12} className="mr-1" />
+          {language === 'nb' ? 'Via Buifyl Shop' : 'Via Buifyl Shop'}
+          {hasSpecificOffer && (
+            <>
+              <span className="mx-1">•</span>
+              <CheckCircle size={12} className="mr-1" />
+              {language === 'nb' ? 'Direkte tilbud' : 'Direct offer'}
+            </>
+          )}
         </div>
-      )}
+      </div>
       
       <div className="flex items-center mb-4">
         <div className="mr-3">
@@ -112,7 +117,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       
       <Button 
         className={cn("w-full mt-auto flex items-center justify-center gap-2", 
-          provider.category === 'electricity' ? 'bg-emerald-600 hover:bg-emerald-700' : 
+          provider.category === 'electricity' || provider.category === 'power' ? 'bg-emerald-600 hover:bg-emerald-700' : 
           provider.category === 'insurance' ? 'bg-blue-600 hover:bg-blue-700' :
           provider.category === 'loan' ? 'bg-purple-600 hover:bg-purple-700' : 
           'bg-sky-600 hover:bg-sky-700'
@@ -126,7 +131,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
         <ExternalLink size={16} />
       </Button>
       
-      {/* Enhanced last updated info */}
+      {/* Enhanced last updated info from Buifyl Shop */}
       {showDataFreshness && (
         <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center">
           <Clock size={12} className="mr-1" />
