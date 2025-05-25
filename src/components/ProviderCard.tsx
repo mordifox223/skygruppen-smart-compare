@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Provider } from '@/lib/types';
 import { useLanguage } from '@/lib/languageContext';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle, Clock, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
-import { buifylService } from '@/lib/services/buifylService';
+import { buifylDataService } from '@/lib/services/buifyl/dataService';
 
 interface ProviderCardProps {
   provider: Provider;
@@ -20,7 +19,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       const targetUrl = provider.offerUrl || provider.url;
       
       // Log Buifyl Shop affiliate click
-      buifylService.logAffiliateClick(
+      buifylDataService.logAffiliateClick(
         provider.id, 
         provider.name, 
         provider.category,
@@ -29,11 +28,9 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
       
       console.log(`🔗 Åpner ${provider.name} tilbud via Buifyl Shop:`, targetUrl);
       
-      // Åpne i ny fane umiddelbart
       window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('Feil ved håndtering av Buifyl Shop provider click:', error);
-      // Fallback - åpne lenken likevel
       window.open(provider.offerUrl || provider.url, '_blank', 'noopener,noreferrer');
     }
   };
