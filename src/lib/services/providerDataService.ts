@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
+import { realDataService } from './realDataService';
 import { getMobileProviders } from '@/lib/data/mobileProviders';
 import { getElectricityProviders } from '@/lib/data/electricityProviders';
 import { getInsuranceProviders } from '@/lib/data/insuranceProviders';
@@ -12,25 +13,37 @@ class ProviderDataService {
 
   async getProviders(category: string): Promise<Provider[]> {
     try {
-      // Check cache first
-      const cached = this.cache.get(category);
-      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-        console.log(`Using cached data for ${category}`);
-        return cached.data;
+      console.log(`Getting providers for ${category} using real data service`);
+      
+      // Try to get real data from Supabase first
+      const realProviders = await realDataService.getProviders(category);
+      
+      if (realProviders.length > 0 && realProviders.some(p => p.isValidData !== false)) {
+        console.log(`Using real data for ${category}: ${realProviders.length} providers`);
+        return realProviders;
       }
-
-      // For now, return static data since the scraping infrastructure is still being set up
-      console.log(`Using static data for ${category}`);
+      
+      // Fallback to static data if no real data is available
+      console.log(`Falling back to static data for ${category}`);
       const staticProviders = this.getStaticProviders(category);
-      this.cache.set(category, { data: staticProviders, timestamp: Date.now() });
-      return staticProviders;
+      
+      // Mark static data as fallback
+      return staticProviders.map(provider => ({
+        ...provider,
+        isValidData: false,
+        validationStatus: 'Using fallback data - real data will be available after next update'
+      }));
 
     } catch (error) {
-      console.error(`Error fetching providers for ${category}:`, error);
+      console.error(`Error in getProviders for ${category}:`, error);
       
-      // Return static data as final fallback
+      // Final fallback to static data
       const staticProviders = this.getStaticProviders(category);
-      return staticProviders;
+      return staticProviders.map(provider => ({
+        ...provider,
+        isValidData: false,
+        validationStatus: 'Error loading data - using fallback'
+      }));
     }
   }
 
@@ -51,16 +64,9 @@ class ProviderDataService {
 
   async triggerScraping(category?: string): Promise<any> {
     try {
-      console.log(`Triggering scraping for category: ${category || 'all'}`);
+      console.log(`Triggering data update for category: ${category || 'all'}`);
       
-      // For now, simulate a successful scraping operation
-      // In the future, this will call the actual edge function
-      const result = {
-        success: true,
-        message: 'Scraping initiated successfully',
-        scrapedCount: 0,
-        category: category || 'all'
-      };
+      const result = await realDataService.triggerDataUpdate(category);
 
       // Clear cache to force refresh
       if (category) {
@@ -69,15 +75,46 @@ class ProviderDataService {
         this.cache.clear();
       }
 
-      // Simulate some delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      console.log('Scraping result:', result);
+      console.log('Data update result:', result);
       return result;
     } catch (error) {
-      console.error('Failed to trigger scraping:', error);
+      console.error('Failed to trigger data update:', error);
       throw error;
     }
+  }
+
+  async getSystemStatus(): Promise<any> {
+    try {
+      const [dataSources, recentJobs] = await Promise.all([
+        realDataService.getDataSources(),
+        realDataService.getScrapingJobs(5)
+      ]);
+
+      return {
+        dataSources,
+        recentJobs,
+        lastUpdate: recentJobs[0]?.completed_at || null,
+        systemHealth: this.calculateSystemHealth(dataSources, recentJobs)
+      };
+    } catch (error) {
+      console.error('Error getting system status:', error);
+      return {
+        dataSources: [],
+        recentJobs: [],
+        lastUpdate: null,
+        systemHealth: 'unknown'
+      };
+    }
+  }
+
+  private calculateSystemHealth(dataSources: any[], recentJobs: any[]): string {
+    const recentFailures = recentJobs.filter(job => job.status === 'failed').length;
+    const totalSources = dataSources.length;
+    const activeSources = dataSources.filter(source => source.is_active).length;
+    
+    if (recentFailures > 2) return 'poor';
+    if (activeSources < totalSources * 0.8) return 'degraded';
+    return 'good';
   }
 }
 

@@ -36,6 +36,48 @@ export type Database = {
         }
         Relationships: []
       }
+      data_sources: {
+        Row: {
+          api_endpoint: string | null
+          category: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_successful_fetch: string | null
+          provider_name: string
+          reliability_score: number | null
+          source_type: string
+          source_url: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_endpoint?: string | null
+          category: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_successful_fetch?: string | null
+          provider_name: string
+          reliability_score?: number | null
+          source_type: string
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_endpoint?: string | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_successful_fetch?: string | null
+          provider_name?: string
+          reliability_score?: number | null
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       provider_configs: {
         Row: {
           api_config: Json | null
@@ -81,6 +123,102 @@ export type Database = {
           scrape_url?: string
           selectors?: Json | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      provider_offers: {
+        Row: {
+          category: string
+          contract_length: string | null
+          created_at: string | null
+          data_allowance: string | null
+          direct_link: string | null
+          features: Json | null
+          id: string
+          is_active: boolean | null
+          logo_url: string | null
+          monthly_price: number
+          offer_url: string
+          plan_name: string
+          provider_name: string
+          scraped_at: string | null
+          source_url: string
+          speed: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          contract_length?: string | null
+          created_at?: string | null
+          data_allowance?: string | null
+          direct_link?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          monthly_price: number
+          offer_url: string
+          plan_name: string
+          provider_name: string
+          scraped_at?: string | null
+          source_url: string
+          speed?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          contract_length?: string | null
+          created_at?: string | null
+          data_allowance?: string | null
+          direct_link?: string | null
+          features?: Json | null
+          id?: string
+          is_active?: boolean | null
+          logo_url?: string | null
+          monthly_price?: number
+          offer_url?: string
+          plan_name?: string
+          provider_name?: string
+          scraped_at?: string | null
+          source_url?: string
+          speed?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      scraping_jobs: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          offers_found: number | null
+          provider_name: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          offers_found?: number | null
+          provider_name: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          offers_found?: number | null
+          provider_name?: string
+          started_at?: string | null
+          status?: string
         }
         Relationships: []
       }
