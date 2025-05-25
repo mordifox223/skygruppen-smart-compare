@@ -21,6 +21,9 @@ export interface ProviderConfig {
   consecutive_failures: number;
   needs_js?: boolean;
   url_generation_strategy?: string;
+  scrape_frequency?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ScrapingResult {
@@ -63,4 +66,34 @@ export interface ScrapingJob {
   started_at: string;
   completed_at?: string;
   error_details?: any;
+}
+
+// Extended types for database operations that might not be fully typed yet
+export interface DatabaseRow {
+  [key: string]: any;
+}
+
+export interface UrlValidationInsert {
+  offer_id?: string;
+  url: string;
+  status_code?: number;
+  response_time_ms?: number;
+  is_valid: boolean;
+  redirect_url?: string;
+  error_message?: string;
+  validated_at?: string;
+}
+
+export interface ScrapingLogInsert {
+  provider_name: string;
+  category: string;
+  job_id?: string;
+  status: string;
+  offers_found?: number;
+  offers_updated?: number;
+  errors_count?: number;
+  execution_time_ms?: number;
+  error_details?: any;
+  started_at?: string;
+  completed_at?: string;
 }

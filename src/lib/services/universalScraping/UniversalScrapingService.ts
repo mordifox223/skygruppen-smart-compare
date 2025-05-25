@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { ProviderConfig, ScrapingResult, ScrapedOffer, ScrapingJob } from './types';
+import { ProviderConfig, ScrapingResult, ScrapedOffer, ScrapingJob, DatabaseRow, ScrapingLogInsert } from './types';
 import { URLGeneratorService } from './URLGeneratorService';
 import { URLValidationService } from './URLValidationService';
 
@@ -117,9 +117,12 @@ export class UniversalScrapingService {
    * Scrape using HTML parsing
    */
   private static async scrapeHTML(config: ProviderConfig): Promise<ScrapedOffer[]> {
-    const response = await fetch(config.scrape_url, {
-      headers: { ...this.DEFAULT_HEADERS, ...config.api_config?.headers }
-    });
+    const headers = { ...this.DEFAULT_HEADERS };
+    if (config.api_config?.headers) {
+      Object.assign(headers, config.api_config.headers);
+    }
+
+    const response = await fetch(config.scrape_url, { headers });
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -137,8 +140,13 @@ export class UniversalScrapingService {
       throw new Error('API endpoint not configured');
     }
 
+    const headers = { ...this.DEFAULT_HEADERS };
+    if (config.api_config.headers) {
+      Object.assign(headers, config.api_config.headers);
+    }
+
     const response = await fetch(config.api_config.endpoint, {
-      headers: { ...this.DEFAULT_HEADERS, ...config.api_config.headers },
+      headers,
       method: 'GET'
     });
 
@@ -259,8 +267,7 @@ export class UniversalScrapingService {
           contract_length: offer.contract_length,
           features: offer.features || {},
           scraped_at: new Date().toISOString(),
-          is_active: true,
-          last_checked: new Date().toISOString()
+          is_active: true
         };
 
         if (existingOffer) {
@@ -296,37 +303,66 @@ export class UniversalScrapingService {
       return [];
     }
 
-    return configs?.map(config => ({
+    return configs?.map((config: DatabaseRow) => ({
       id: config.id,
       provider_name: config.provider_name,
       category: config.category,
       scrape_url: config.scrape_url,
-      selectors: config.selectors || {},
-      api_config: config.api_config || {},
+      selectors: this.parseSelectors(config.selectors),
+      api_config: this.parseApiConfig(config.api_config),
       scrape_method: config.scrape_method || 'html',
       is_enabled: config.is_enabled,
       last_successful_scrape: config.last_successful_scrape,
       consecutive_failures: config.consecutive_failures || 0,
       needs_js: config.needs_js || false,
-      url_generation_strategy: config.url_generation_strategy
+      url_generation_strategy: config.url_generation_strategy,
+      scrape_frequency: config.scrape_frequency
     })) || [];
   }
 
   /**
-   * Log scraping job details
+   * Parse selectors from database JSON
+   */
+  private static parseSelectors(selectors: any): ProviderConfig['selectors'] {
+    if (!selectors || typeof selectors !== 'object') {
+      return {};
+    }
+    return {
+      plan_selector: selectors.plan_selector,
+      name_selector: selectors.name_selector,
+      price_selector: selectors.price_selector,
+      link_selector: selectors.link_selector
+    };
+  }
+
+  /**
+   * Parse API config from database JSON
+   */
+  private static parseApiConfig(apiConfig: any): ProviderConfig['api_config'] {
+    if (!apiConfig || typeof apiConfig !== 'object') {
+      return {};
+    }
+    return {
+      endpoint: apiConfig.endpoint,
+      headers: apiConfig.headers,
+      params: apiConfig.params
+    };
+  }
+
+  /**
+   * Log scraping job details using safe database operations
    */
   static async logScrapingJob(job: Partial<ScrapingJob>): Promise<void> {
     try {
-      await supabase.from('scraping_logs').insert({
-        provider_name: job.provider_name,
-        category: job.category,
+      // Use existing scraping_jobs table instead of scraping_logs
+      await supabase.from('scraping_jobs').insert({
+        provider_name: job.provider_name || '',
+        category: job.category || '',
         status: job.status || 'pending',
         offers_found: job.offers_found || 0,
-        offers_updated: job.offers_updated || 0,
-        errors_count: job.errors_count || 0,
         started_at: job.started_at || new Date().toISOString(),
         completed_at: job.completed_at,
-        error_details: job.error_details
+        error_message: job.error_details ? JSON.stringify(job.error_details) : null
       });
     } catch (error) {
       console.error('Failed to log scraping job:', error);

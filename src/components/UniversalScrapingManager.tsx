@@ -13,8 +13,8 @@ import {
   Globe,
   Target
 } from 'lucide-react';
-import { UniversalScrapingService } from '@/lib/services/UniversalScrapingService';
-import { ScrapingResult } from '@/lib/services/scrapers/BaseParser';
+import { UniversalScrapingService } from '@/lib/services/universalScraping/UniversalScrapingService';
+import { ScrapingResult } from '@/lib/services/universalScraping/types';
 import { useToast } from '@/components/ui/use-toast';
 
 const UniversalScrapingManager: React.FC = () => {
@@ -29,8 +29,6 @@ const UniversalScrapingManager: React.FC = () => {
     { id: 'insurance', name: 'Forsikring', icon: '🛡️' },
     { id: 'loan', name: 'Lån', icon: '🏦' }
   ];
-
-  const availableParsers = UniversalScrapingService.getAvailableParsers();
 
   const handleScrapeCategory = async (category: string) => {
     setIsLoading(true);
@@ -49,11 +47,11 @@ const UniversalScrapingManager: React.FC = () => {
         return newResults;
       });
 
-      const totalProducts = categoryResults.reduce((sum, r) => sum + r.products.length, 0);
+      const totalOffers = categoryResults.reduce((sum, r) => sum + r.offers.length, 0);
       
       toast({
         title: "✅ Scraping fullført",
-        description: `Hentet ${totalProducts} produkter fra ${categoryResults.length} leverandører`,
+        description: `Hentet ${totalOffers} tilbud fra ${categoryResults.length} leverandører`,
         duration: 5000,
       });
     } catch (error) {
@@ -78,17 +76,17 @@ const UniversalScrapingManager: React.FC = () => {
         duration: 3000,
       });
 
-      const allResults = await UniversalScrapingService.scrapeAll();
+      const allResults = await UniversalScrapingService.startUniversalScraping();
       setResults(allResults);
 
-      let totalProducts = 0;
+      let totalOffers = 0;
       allResults.forEach((categoryResults) => {
-        totalProducts += categoryResults.reduce((sum, r) => sum + r.products.length, 0);
+        totalOffers += categoryResults.reduce((sum, r) => sum + r.offers.length, 0);
       });
 
       toast({
         title: "🎉 Universal scraping fullført",
-        description: `Hentet ${totalProducts} produkter totalt`,
+        description: `Hentet ${totalOffers} tilbud totalt`,
         duration: 5000,
       });
     } catch (error) {
@@ -104,35 +102,6 @@ const UniversalScrapingManager: React.FC = () => {
     }
   };
 
-  const handleValidateUrls = async () => {
-    const allResults = Array.from(results.values()).flat();
-    if (allResults.length === 0) {
-      toast({
-        title: "⚠️ Ingen data",
-        description: "Kjør scraping først",
-        variant: "destructive",
-        duration: 3000,
-      });
-      return;
-    }
-
-    try {
-      await UniversalScrapingService.validateAllUrls(allResults);
-      toast({
-        title: "🔍 URL-validering fullført",
-        description: "Sjekk konsollen for detaljer",
-        duration: 3000,
-      });
-    } catch (error) {
-      toast({
-        title: "❌ Validering feilet",
-        description: "Kunne ikke validere URL-er",
-        variant: "destructive",
-        duration: 3000,
-      });
-    }
-  };
-
   const handleExport = () => {
     const allResults = Array.from(results.values()).flat();
     if (allResults.length === 0) {
@@ -145,7 +114,26 @@ const UniversalScrapingManager: React.FC = () => {
       return;
     }
 
-    UniversalScrapingService.exportToJson(allResults);
+    const exportData = {
+      scrapedAt: new Date().toISOString(),
+      totalProviders: allResults.length,
+      totalOffers: allResults.reduce((sum, r) => sum + r.offers.length, 0),
+      results: allResults
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { 
+      type: 'application/json' 
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scraped-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
     toast({
       title: "📁 Data eksportert",
       description: "JSON-fil lastet ned",
@@ -157,9 +145,9 @@ const UniversalScrapingManager: React.FC = () => {
     return results.get(category) || [];
   };
 
-  const getTotalProductsForCategory = (category: string) => {
+  const getTotalOffersForCategory = (category: string) => {
     const categoryResults = getCategoryResults(category);
-    return categoryResults.reduce((sum, r) => sum + r.products.length, 0);
+    return categoryResults.reduce((sum, r) => sum + r.offers.length, 0);
   };
 
   return (
@@ -181,26 +169,21 @@ const UniversalScrapingManager: React.FC = () => {
               Scrape Alt
             </Button>
             
-            <Button onClick={handleValidateUrls} variant="outline" disabled={isLoading}>
-              <CheckCircle className="mr-2" size={16} />
-              Valider URL-er
-            </Button>
-            
             <Button onClick={handleExport} variant="secondary" disabled={results.size === 0}>
               <Download className="mr-2" size={16} />
               Eksporter JSON
             </Button>
           </div>
 
-          {/* Available Parsers Overview */}
+          {/* Provider Overview */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            {availableParsers.map((parser, index) => (
-              <div key={index} className="p-3 border rounded text-center">
-                <div className="text-lg mb-1">
-                  {categories.find(c => c.id === parser.category)?.icon || '🔧'}
+            {categories.map((category) => (
+              <div key={category.id} className="p-3 border rounded text-center">
+                <div className="text-lg mb-1">{category.icon}</div>
+                <div className="text-sm font-medium">{category.name}</div>
+                <div className="text-xs text-gray-500">
+                  {getTotalOffersForCategory(category.id)} tilbud
                 </div>
-                <div className="text-sm font-medium">{parser.provider}</div>
-                <div className="text-xs text-gray-500 capitalize">{parser.category}</div>
               </div>
             ))}
           </div>
@@ -228,7 +211,7 @@ const UniversalScrapingManager: React.FC = () => {
                   </CardTitle>
                   <div className="flex gap-2">
                     <Badge variant="outline">
-                      {getTotalProductsForCategory(category.id)} produkter
+                      {getTotalOffersForCategory(category.id)} tilbud
                     </Badge>
                     <Button 
                       onClick={() => handleScrapeCategory(category.id)} 
@@ -248,29 +231,50 @@ const UniversalScrapingManager: React.FC = () => {
                     <div key={resultIndex} className="border rounded p-4">
                       <div className="flex justify-between items-center mb-3">
                         <h4 className="font-medium">
-                          Leverandør: {result.products[0]?.name.split(' ')[0] || 'Ukjent'}
+                          {result.provider_name}
                         </h4>
                         <div className="flex gap-2">
-                          <Badge variant="default">
-                            {result.products.length} produkter
+                          {result.success ? (
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              <CheckCircle size={12} className="mr-1" />
+                              Vellykket
+                            </Badge>
+                          ) : (
+                            <Badge variant="destructive">
+                              <XCircle size={12} className="mr-1" />
+                              Feilet
+                            </Badge>
+                          )}
+                          <Badge variant="outline">
+                            {result.offers.length} tilbud
                           </Badge>
                           <Badge variant="outline">
-                            {new Date(result.scrapedAt).toLocaleTimeString('no-NO')}
+                            {result.execution_time_ms}ms
                           </Badge>
                         </div>
                       </div>
                       
+                      {result.error && (
+                        <div className="text-sm text-red-600 mb-2">
+                          Feil: {result.error}
+                        </div>
+                      )}
+                      
                       <div className="space-y-2">
-                        {result.products.map((product, productIndex) => (
-                          <div key={productIndex} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        {result.offers.map((offer, offerIndex) => (
+                          <div key={offerIndex} className="flex justify-between items-center p-2 bg-gray-50 rounded">
                             <div className="flex-1">
-                              <div className="font-medium">{product.name}</div>
-                              <div className="text-sm text-gray-600">{product.description}</div>
-                              <div className="text-lg font-semibold text-blue-600">{product.price}</div>
+                              <div className="font-medium">{offer.plan_name}</div>
+                              <div className="text-lg font-semibold text-blue-600">
+                                {offer.monthly_price} kr/mnd
+                              </div>
+                              {offer.data_allowance && (
+                                <div className="text-sm text-gray-600">{offer.data_allowance}</div>
+                              )}
                             </div>
                             <div className="ml-4">
                               <a 
-                                href={product.url} 
+                                href={offer.offer_url} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 className="text-blue-500 hover:text-blue-700"
@@ -281,33 +285,12 @@ const UniversalScrapingManager: React.FC = () => {
                           </div>
                         ))}
                       </div>
-                      
-                      {result.validation.length > 0 && (
-                        <div className="mt-3 pt-3 border-t">
-                          <div className="text-sm text-gray-600 mb-2">URL Validering:</div>
-                          <div className="flex gap-2 flex-wrap">
-                            {result.validation.map((validation, validationIndex) => (
-                              <Badge 
-                                key={validationIndex}
-                                variant={validation.valid ? "default" : "destructive"}
-                                className="text-xs"
-                              >
-                                {validation.valid ? (
-                                  <><CheckCircle size={10} className="mr-1" /> Gyldig</>
-                                ) : (
-                                  <><XCircle size={10} className="mr-1" /> {validation.status}</>
-                                )}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                   
                   {getCategoryResults(category.id).length === 0 && (
                     <div className="text-center py-8 text-gray-500">
-                      Ingen data hentet ennå. Klikk "Scrape" for å hente produkter.
+                      Ingen data hentet ennå. Klikk "Scrape" for å hente tilbud.
                     </div>
                   )}
                 </div>
