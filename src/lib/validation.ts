@@ -47,3 +47,28 @@ export const isUrlValid = (url: string): boolean => {
     return false;
   }
 };
+
+export const isValidLogo = (src: string, category: string, name: string): boolean => {
+  // Basic URL validation
+  if (!src || typeof src !== 'string') return false;
+  
+  // Check if it's a valid URL
+  if (!isUrlValid(src)) return false;
+  
+  // Check for common image extensions
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.svg', '.webp'];
+  const hasImageExtension = imageExtensions.some(ext => 
+    src.toLowerCase().includes(ext)
+  );
+  
+  // Check if it's a data URL (base64 image)
+  const isDataUrl = src.startsWith('data:image/');
+  
+  // Check if it's from a CDN or known image hosting service
+  const knownImageHosts = ['cdn.', 'images.', 'img.', 'static.', 'assets.'];
+  const isFromImageHost = knownImageHosts.some(host => 
+    src.toLowerCase().includes(host)
+  );
+  
+  return hasImageExtension || isDataUrl || isFromImageHost;
+};
