@@ -1,6 +1,5 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { useLanguage } from '@/lib/languageContext';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
@@ -36,6 +35,8 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
   private handleRetry = () => {
     this.setState({ hasError: false, error: undefined });
+    // Reload the page to get a fresh start
+    window.location.reload();
   };
 
   public render() {
@@ -53,26 +54,28 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
 const ErrorFallback: React.FC<{ onRetry: () => void; error?: Error }> = ({ onRetry, error }) => {
   return (
-    <div className="flex flex-col items-center justify-center p-8 text-center bg-red-50 rounded-lg border border-red-200">
-      <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
-      <h3 className="text-lg font-semibold text-red-800 mb-2">
-        Noe gikk galt
-      </h3>
-      <p className="text-red-600 mb-4 max-w-md">
-        Det oppstod en uventet feil. Prøv å laste siden på nytt.
-      </p>
-      {error && (
-        <details className="mb-4 text-sm text-gray-600">
-          <summary className="cursor-pointer">Tekniske detaljer</summary>
-          <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto max-w-md">
-            {error.message}
-          </pre>
-        </details>
-      )}
-      <Button onClick={onRetry} className="flex items-center gap-2">
-        <RefreshCw size={16} />
-        Prøv igjen
-      </Button>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="flex flex-col items-center justify-center p-8 text-center bg-white rounded-lg border shadow-sm max-w-md">
+        <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          Noe gikk galt
+        </h3>
+        <p className="text-gray-600 mb-4">
+          Det oppstod en uventet feil. Prøv å laste siden på nytt.
+        </p>
+        {error && (
+          <details className="mb-4 text-sm text-gray-600 w-full">
+            <summary className="cursor-pointer hover:text-gray-900">Tekniske detaljer</summary>
+            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto text-left">
+              {error.message}
+            </pre>
+          </details>
+        )}
+        <Button onClick={onRetry} className="flex items-center gap-2">
+          <RefreshCw size={16} />
+          Last siden på nytt
+        </Button>
+      </div>
     </div>
   );
 };

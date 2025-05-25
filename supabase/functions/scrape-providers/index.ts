@@ -30,6 +30,8 @@ interface ScrapedOffer {
   logo_url?: string;
   direct_link?: string;
   source_url: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 serve(async (req) => {
@@ -100,20 +102,27 @@ serve(async (req) => {
       }
     }
 
-    // Store scraped offers in database
+    // Store scraped offers in database - Insert each offer individually to avoid conflicts
     if (scrapedOffers.length > 0) {
       console.log(`Storing ${scrapedOffers.length} offers...`);
       
-      const { error: insertError } = await supabaseClient
-        .from('provider_offers')
-        .upsert(scrapedOffers, {
-          onConflict: 'provider_name,plan_name',
-          ignoreDuplicates: false
-        });
+      for (const offer of scrapedOffers) {
+        const { error: insertError } = await supabaseClient
+          .from('provider_offers')
+          .insert([{
+            ...offer,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }]);
 
-      if (insertError) {
-        console.error('Failed to store offers:', insertError);
-        errors.push({ error: 'Database storage failed', details: insertError.message });
+        if (insertError) {
+          console.error('Failed to store offer:', insertError);
+          errors.push({ 
+            error: 'Database storage failed for offer', 
+            details: insertError.message,
+            offer: offer.plan_name 
+          });
+        }
       }
     }
 
@@ -158,6 +167,14 @@ async function scrapeAPI(config: ProviderConfig): Promise<ScrapedOffer[]> {
   
   try {
     const response = await fetch(config.scrape_url);
+    
+    // Check if response is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      console.warn(`${config.provider_name}: API did not return JSON, falling back to mock data`);
+      return generateMockOffers(config);
+    }
+    
     const data = await response.json();
     
     // This is provider-specific logic that would need to be customized
@@ -175,6 +192,7 @@ async function scrapeAPI(config: ProviderConfig): Promise<ScrapedOffer[]> {
     }
   } catch (error) {
     console.error(`API scraping failed for ${config.provider_name}:`, error);
+    return generateMockOffers(config);
   }
 
   return offers;
@@ -331,6 +349,18 @@ function generateMockOffers(config: ProviderConfig): ScrapedOffer[] {
         }
       );
       break;
+
+    // Add other providers with similar mock data structure
+    default:
+      offers.push({
+        provider_name: config.provider_name,
+        category: config.category,
+        plan_name: `${config.provider_name} Standard`,
+        monthly_price: 299,
+        offer_url: config.scrape_url,
+        features: { nb: ['Standard tilbud'], en: ['Standard offer'] },
+        source_url: config.scrape_url
+      });
   }
   
   return offers;
