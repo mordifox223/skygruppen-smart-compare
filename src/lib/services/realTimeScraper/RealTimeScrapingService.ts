@@ -31,73 +31,76 @@ export interface ProviderConfig {
 }
 
 class RealTimeScrapingService {
-  // Get all enabled provider configs from database
-  async getProviderConfigs(category?: string): Promise<ProviderConfig[]> {
-    let query = supabase
-      .from('provider_configs')
-      .select('*')
-      .eq('is_enabled', true);
-    
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const { data: configs, error } = await query;
-
-    if (error) {
-      console.error('Failed to fetch provider configs:', error);
-      return [];
-    }
-
-    return (configs || []).map(config => ({
-      name: config.provider_name,
-      baseUrl: config.scrape_url,
-      category: config.category as any,
+  private providers: ProviderConfig[] = [
+    // Mobile providers
+    {
+      name: 'Telenor',
+      baseUrl: 'https://www.telenor.no',
+      category: 'mobile',
+      logoUrl: 'https://www.telenor.no/static/images/telenor-logo.svg',
       selectors: {
-        productList: '.product-card',
-        productName: '.product-name',
-        price: '.price',
-        link: 'a'
-      },
-      logoUrl: this.getProviderLogo(config.provider_name)
-    }));
-  }
-
-  private getProviderLogo(providerName: string): string {
-    const logoMap: Record<string, string> = {
-      // Mobile providers
-      'Telenor': 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Telenor_logo.svg/320px-Telenor_logo.svg.png',
-      'Telia': 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Telia_Company_Logo.svg/320px-Telia_Company_Logo.svg.png',
-      'Ice': 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Ice_logo_2018.svg/320px-Ice_logo_2018.svg.png',
-      'Talkmore': 'https://www.talkmore.no/assets/brands/talkmore/logos/logo.svg',
-      'OneCall': 'https://onecall.no/static/images/onecall-logo.svg',
-      'Chilimobil': 'https://chilimobil.no/static/images/chilimobil-logo.svg',
-      
-      // Electricity providers
-      'Fjordkraft': 'https://www.fjordkraft.no/assets/images/fjordkraft-logo.svg',
-      'Tibber': 'https://tibber.com/assets/tibber-logo.svg',
-      'Hafslund Strøm': 'https://www.hafslund.no/static/hafslund-logo.svg',
-      'NorgesEnergi': 'https://www.norgesenergi.no/static/images/norgesenergi-logo.svg',
-      
-      // Insurance providers
-      'If Skadeforsikring': 'https://www.if.no/static/images/if-logo.svg',
-      'Gjensidige Forsikring': 'https://www.gjensidige.no/static/images/gjensidige-logo.svg',
-      'Tryg Forsikring': 'https://www.tryg.no/static/images/tryg-logo.svg',
-      
-      // Loan providers
-      'Bank Norwegian': 'https://www.banknorwegian.no/static/images/banknorwegian-logo.svg',
-      'Santander Consumer Bank': 'https://www.santanderconsumer.no/static/images/santander-logo.svg'
-    };
-
-    return logoMap[providerName] || `https://www.${providerName.toLowerCase().replace(/\s+/g, '')}.no/favicon.ico`;
-  }
+        productList: '.product-card, .plan-card, .subscription-card',
+        productName: '.plan-name, .product-title',
+        price: '.price, .monthly-price',
+        data: '.data-amount, .data-allowance',
+        speed: '.speed, .network',
+        benefits: '.features li, .benefits li',
+        link: 'a[href*="bestill"], a[href*="kjop"]'
+      }
+    },
+    {
+      name: 'Telia',
+      baseUrl: 'https://www.telia.no',
+      category: 'mobile',
+      logoUrl: 'https://www.telia.no/static/images/telia-logo.svg',
+      selectors: {
+        productList: '.subscription-card, .product-item',
+        productName: '.subscription-name, .plan-title',
+        price: '.price-amount, .monthly-fee',
+        data: '.data-volume, .gb-amount',
+        speed: '.network-type, .speed-info',
+        benefits: '.feature-list li, .included-services li',
+        link: 'a[href*="bestill"], a[href*="order"]'
+      }
+    },
+    {
+      name: 'Ice',
+      baseUrl: 'https://www.ice.no',
+      category: 'mobile',
+      logoUrl: 'https://www.ice.no/static/images/ice-logo.svg',
+      selectors: {
+        productList: '.abonnement-card, .plan-box',
+        productName: '.plan-name, .subscription-title',
+        price: '.price-per-month, .monthly-cost',
+        data: '.data-amount, .gb-limit',
+        speed: '.network-speed, .connection-type',
+        benefits: '.features-list li, .benefits li',
+        link: 'a[href*="bestill"], a[href*="buy"]'
+      }
+    },
+    {
+      name: 'Talkmore',
+      baseUrl: 'https://www.talkmore.no',
+      category: 'mobile',
+      logoUrl: 'https://www.talkmore.no/static/images/talkmore-logo.svg',
+      selectors: {
+        productList: '.product-card, .abonnement-box',
+        productName: '.product-name, .plan-title',
+        price: '.price, .cost-per-month',
+        data: '.data-allowance, .monthly-data',
+        speed: '.speed-info, .network',
+        benefits: '.included li, .features li',
+        link: 'a[href*="bestill"], a[href*="subscribe"]'
+      }
+    }
+  ];
 
   async scrapeProvider(providerConfig: ProviderConfig): Promise<ScrapedProduct[]> {
     try {
       console.log(`🔄 Scraping ${providerConfig.name}...`);
       
-      // Generate realistic offers based on provider and category
-      const mockProducts = this.generateRealisticOffers(providerConfig);
+      // Simulate realistic scraping with enhanced mock data based on provider
+      const mockProducts = this.generateRealisticMockData(providerConfig);
       
       console.log(`✅ Found ${mockProducts.length} products from ${providerConfig.name}`);
       return mockProducts;
@@ -107,159 +110,55 @@ class RealTimeScrapingService {
     }
   }
 
-  private generateRealisticOffers(config: ProviderConfig): ScrapedProduct[] {
+  private generateRealisticMockData(config: ProviderConfig): ScrapedProduct[] {
     const products: ScrapedProduct[] = [];
     
-    switch (config.category) {
-      case 'mobile':
-        products.push(...this.generateMobileOffers(config));
-        break;
-      case 'electricity':
-        products.push(...this.generateElectricityOffers(config));
-        break;
-      case 'insurance':
-        products.push(...this.generateInsuranceOffers(config));
-        break;
-      case 'loan':
-        products.push(...this.generateLoanOffers(config));
-        break;
+    if (config.category === 'mobile') {
+      const mobileBasePrice = this.getMobileBasePrice(config.name);
+      products.push(
+        {
+          provider: config.name,
+          logo: config.logoUrl || `https://www.${config.name.toLowerCase().replace(/\s+/g, '')}.no/favicon.ico`,
+          product: `${config.name} Start`,
+          price: `${mobileBasePrice} kr/mnd`,
+          data: this.getMobileDataAmount('start'),
+          speed: this.getMobileSpeed(config.name),
+          binding: this.getMobileBinding('start'),
+          benefits: this.getMobileBenefits(config.name, 'start'),
+          link: `${config.baseUrl}/mobilabonnement/start`,
+          category: 'mobile'
+        },
+        {
+          provider: config.name,
+          logo: config.logoUrl || `https://www.${config.name.toLowerCase().replace(/\s+/g, '')}.no/favicon.ico`,
+          product: `${config.name} Plus`,
+          price: `${mobileBasePrice + 100} kr/mnd`,
+          data: this.getMobileDataAmount('plus'),
+          speed: this.getMobileSpeed(config.name),
+          binding: this.getMobileBinding('plus'),
+          benefits: this.getMobileBenefits(config.name, 'plus'),
+          link: `${config.baseUrl}/mobilabonnement/plus`,
+          category: 'mobile'
+        }
+      );
     }
     
     return products;
   }
 
-  private generateMobileOffers(config: ProviderConfig): ScrapedProduct[] {
-    const mobileBasePrice = this.getMobileBasePrice(config.name);
-    const offers: ScrapedProduct[] = [];
-    
-    // Generate 2-3 realistic mobile plans per provider
-    const plans = [
-      { name: 'Smart', data: '5GB', priceOffset: 0 },
-      { name: 'Plus', data: '15GB', priceOffset: 100 },
-      { name: 'Max', data: 'Ubegrenset', priceOffset: 200 }
-    ];
-
-    plans.forEach(plan => {
-      if (Math.random() > 0.3) { // 70% chance to include each plan
-        offers.push({
-          provider: config.name,
-          logo: config.logoUrl || '',
-          product: `${config.name} ${plan.name}`,
-          price: `${mobileBasePrice + plan.priceOffset} kr/mnd`,
-          data: plan.data,
-          speed: this.getMobileSpeed(config.name),
-          binding: this.getMobileBinding(),
-          benefits: this.getMobileBenefits(config.name),
-          link: `${config.baseUrl}/${plan.name.toLowerCase()}`,
-          category: 'mobile'
-        });
-      }
-    });
-
-    return offers;
-  }
-
-  private generateElectricityOffers(config: ProviderConfig): ScrapedProduct[] {
-    const offers: ScrapedProduct[] = [];
-    
-    // Different electricity plan types
-    const planTypes = [
-      { name: 'Variabel', basePrice: 35, type: 'variable' },
-      { name: 'Fast 1 år', basePrice: 45, type: 'fixed' },
-      { name: 'Spot', basePrice: 29, type: 'spot' }
-    ];
-
-    planTypes.forEach(plan => {
-      if (Math.random() > 0.4) { // 60% chance to include each plan
-        const price = plan.basePrice + Math.floor(Math.random() * 20);
-        offers.push({
-          provider: config.name,
-          logo: config.logoUrl || '',
-          product: `${config.name} ${plan.name}`,
-          price: `${price} kr/mnd`,
-          data: undefined,
-          speed: undefined,
-          binding: plan.type === 'fixed' ? '12 måneder' : 'Ingen binding',
-          benefits: this.getElectricityBenefits(plan.type),
-          link: `${config.baseUrl}/${plan.name.toLowerCase().replace(' ', '-')}`,
-          category: 'electricity'
-        });
-      }
-    });
-
-    return offers;
-  }
-
-  private generateInsuranceOffers(config: ProviderConfig): ScrapedProduct[] {
-    const offers: ScrapedProduct[] = [];
-    
-    const insuranceTypes = [
-      { name: 'Bilforsikring Ansvar', basePrice: 150 },
-      { name: 'Bilforsikring Kasko', basePrice: 280 },
-      { name: 'Innboforsikring', basePrice: 120 },
-      { name: 'Reiseforsikring', basePrice: 85 }
-    ];
-
-    insuranceTypes.forEach(insurance => {
-      if (Math.random() > 0.5) { // 50% chance to include each type
-        const price = insurance.basePrice + Math.floor(Math.random() * 100);
-        offers.push({
-          provider: config.name,
-          logo: config.logoUrl || '',
-          product: `${config.name} ${insurance.name}`,
-          price: `${price} kr/mnd`,
-          data: undefined,
-          speed: undefined,
-          binding: '12 måneder',
-          benefits: this.getInsuranceBenefits(insurance.name),
-          link: `${config.baseUrl}/${insurance.name.toLowerCase().replace(/\s+/g, '-')}`,
-          category: 'insurance'
-        });
-      }
-    });
-
-    return offers;
-  }
-
-  private generateLoanOffers(config: ProviderConfig): ScrapedProduct[] {
-    const offers: ScrapedProduct[] = [];
-    
-    const loanTypes = [
-      { name: 'Forbrukslån', rate: 8.5 },
-      { name: 'Refinansiering', rate: 7.2 },
-      { name: 'Boliglån', rate: 4.8 }
-    ];
-
-    loanTypes.forEach(loan => {
-      if (Math.random() > 0.4) { // 60% chance to include each type
-        const rate = loan.rate + (Math.random() * 2 - 1); // ±1% variation
-        offers.push({
-          provider: config.name,
-          logo: config.logoUrl || '',
-          product: `${config.name} ${loan.name}`,
-          price: `${rate.toFixed(2)}% rente`,
-          data: undefined,
-          speed: undefined,
-          binding: 'Opptil 15 år',
-          benefits: this.getLoanBenefits(loan.name),
-          link: `${config.baseUrl}/${loan.name.toLowerCase()}`,
-          category: 'loan'
-        });
-      }
-    });
-
-    return offers;
-  }
-
   private getMobileBasePrice(provider: string): number {
     const basePrices: Record<string, number> = {
-      'Telenor': 329, 'Telia': 299, 'Ice': 249, 'Talkmore': 199,
-      'OneCall': 189, 'Chilimobil': 169, 'MyCall': 179, 'Lycamobile': 159,
-      'Happybytes': 149, 'PlussMobil': 139, 'Release': 169, 'Saga Mobil': 159,
-      'Fjordkraft Mobil': 189, 'NorgesEnergi Mobil': 179, 'Mobit': 149,
-      'Mobilselskapet': 129, 'Phonero': 299
+      'Telenor': 299, 'Telia': 289, 'Ice': 199, 'Talkmore': 179
     };
     return basePrices[provider] || 199;
+  }
+
+  private getMobileDataAmount(tier: string): string {
+    switch (tier) {
+      case 'start': return Math.random() > 0.5 ? '5GB' : '10GB';
+      case 'plus': return Math.random() > 0.5 ? '20GB' : '30GB';
+      default: return '5GB';
+    }
   }
 
   private getMobileSpeed(provider: string): string {
@@ -267,65 +166,28 @@ class RealTimeScrapingService {
     return majorProviders.includes(provider) ? '5G' : '4G';
   }
 
-  private getMobileBinding(): string {
-    return Math.random() > 0.6 ? '12 måneder' : 'Ingen binding';
+  private getMobileBinding(tier: string): string {
+    return tier === 'start' ? 'Ingen binding' : Math.random() > 0.5 ? 'Ingen binding' : '12 måneder';
   }
 
-  private getMobileBenefits(provider: string): string[] {
+  private getMobileBenefits(provider: string, tier: string): string[] {
     const baseBenefits = ['Fri tale og SMS', 'EU-roaming inkludert'];
-    const extraBenefits = ['Data rollover', 'Hotspot inkludert', 'Musikk-streaming', 'Familie-rabatt'];
-    
-    const benefits = [...baseBenefits];
-    extraBenefits.forEach(benefit => {
-      if (Math.random() > 0.5) benefits.push(benefit);
-    });
-    
-    return benefits;
-  }
-
-  private getElectricityBenefits(type: string): string[] {
-    const benefits = ['Månedlig faktura', 'Kundeservice'];
-    
-    if (type === 'variable') benefits.push('Følger spotprisen');
-    if (type === 'fixed') benefits.push('Fast pris');
-    if (type === 'spot') benefits.push('Spotpris + påslag');
-    
-    const extraBenefits = ['Grønn strøm', 'App-styring', 'Forbruksrapport'];
-    extraBenefits.forEach(benefit => {
-      if (Math.random() > 0.6) benefits.push(benefit);
-    });
-    
-    return benefits;
-  }
-
-  private getInsuranceBenefits(type: string): string[] {
-    const benefits = ['24/7 kundeservice', 'Rask skadebehandling'];
-    
-    if (type.includes('Bil')) benefits.push('Veihjelp', 'Erstatningsbil');
-    if (type.includes('Innbo')) benefits.push('Reisegods', 'Naturskader');
-    if (type.includes('Reise')) benefits.push('Verdensdekking', 'Medisinsk hjelp');
-    
-    return benefits;
-  }
-
-  private getLoanBenefits(type: string): string[] {
-    const benefits = ['Rask behandling', 'Fleksible vilkår'];
-    
-    if (type.includes('Forbruks')) benefits.push('Ingen sikkerhet', 'Fri disponering');
-    if (type.includes('Refinansiering')) benefits.push('Samle lån', 'Lavere rente');
-    if (type.includes('Bolig')) benefits.push('Konkurransedyktig rente', 'Lang nedbetalingstid');
-    
-    return benefits;
+    if (tier === 'plus') {
+      return [...baseBenefits, 'Data rollover', 'Hotspot inkludert'];
+    }
+    return baseBenefits;
   }
 
   async scrapeAllProviders(category?: string): Promise<void> {
-    const configs = await this.getProviderConfigs(category);
+    const providersToScrape = category 
+      ? this.providers.filter(p => p.category === category)
+      : this.providers;
     
-    console.log(`🌐 Starting automated scraping for ${configs.length} providers in ${category || 'all categories'}...`);
+    console.log(`🌐 Starting automated scraping for ${providersToScrape.length} providers...`);
     
-    for (const config of configs) {
+    for (const provider of providersToScrape) {
       try {
-        const products = await this.scrapeProvider(config);
+        const products = await this.scrapeProvider(provider);
         
         // Store products directly in database using upsert
         await this.upsertProductsToDatabase(products);
@@ -333,11 +195,11 @@ class RealTimeScrapingService {
         // Small delay to avoid overwhelming servers
         await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error(`Failed to scrape ${config.name}:`, error);
+        console.error(`Failed to scrape ${provider.name}:`, error);
       }
     }
     
-    console.log(`✅ Completed automated scraping and database update for ${category || 'all categories'}.`);
+    console.log(`✅ Completed automated scraping and database update.`);
   }
 
   private async upsertProductsToDatabase(products: ScrapedProduct[]): Promise<void> {
@@ -397,8 +259,7 @@ class RealTimeScrapingService {
   }
 
   getProvidersByCategory(category: string): ProviderConfig[] {
-    // This will be replaced by database query in scrapeAllProviders
-    return [];
+    return this.providers.filter(p => p.category === category);
   }
 }
 
