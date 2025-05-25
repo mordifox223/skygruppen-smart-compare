@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Star, ExternalLink, CheckCircle, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ProviderLogo from '@/components/ProviderLogo';
-import { providerDataService } from '@/lib/services/providerDataService';
+import { affiliateClickService } from '@/lib/services/affiliateClickService';
 
 interface ProviderCardProps {
   provider: Provider;
@@ -17,18 +17,20 @@ const ProviderCard: React.FC<ProviderCardProps> = ({ provider }) => {
   
   const handleProviderClick = async () => {
     try {
-      // Enhanced affiliate click logging
-      await providerDataService.logAffiliateClick(
+      const targetUrl = provider.offerUrl || provider.url;
+      
+      // Log affiliate click (don't await to avoid delaying redirect)
+      affiliateClickService.logAffiliateClick(
         provider.id, 
         provider.name, 
         provider.category,
-        provider.offerUrl
+        targetUrl
       );
       
-      console.log(`🔗 Opening ${provider.name} offer:`, provider.offerUrl);
+      console.log(`🔗 Opening ${provider.name} offer:`, targetUrl);
       
-      // Open in new tab with proper security
-      window.open(provider.offerUrl, '_blank', 'noopener,noreferrer');
+      // Open in new tab immediately
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
     } catch (error) {
       console.error('Error handling provider click:', error);
       // Fallback - still open the link
