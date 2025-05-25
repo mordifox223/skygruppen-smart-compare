@@ -5,6 +5,8 @@ export interface BuifylOffer {
   category: string;
   monthly_price: number;
   plan_name: string;
+  product_id?: string;
+  slug?: string;
   data_allowance?: string;
   speed?: string;
   contract_length?: string;

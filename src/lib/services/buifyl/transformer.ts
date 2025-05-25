@@ -17,7 +17,7 @@ export class BuifylTransformer {
       offerUrl: this.buildBuifylAffiliateUrl(offer),
       lastUpdated: new Date(offer.scraped_at),
       isValidData: this.isDataFresh(offer.scraped_at),
-      hasSpecificOffer: !!(offer.direct_link || offer.manual_override_url)
+      hasSpecificOffer: this.hasSpecificOfferUrl(offer)
     }));
   }
 
@@ -41,13 +41,17 @@ export class BuifylTransformer {
     }
   }
 
-  private static isDataFresh(scrapedAt: string): boolean {
+  static isDataFresh(scrapedAt: string): boolean {
     const scrapedDate = new Date(scrapedAt);
     const hoursSinceUpdate = (Date.now() - scrapedDate.getTime()) / (1000 * 60 * 60);
     return hoursSinceUpdate <= 48;
   }
 
-  private static transformFeatures(offer: BuifylOffer): Record<string, string[]> {
+  static hasSpecificOfferUrl(offer: BuifylOffer): boolean {
+    return !!(offer.direct_link || offer.manual_override_url);
+  }
+
+  static transformFeatures(offer: BuifylOffer): Record<string, string[]> {
     const features: string[] = [];
     
     if (offer.data_allowance) features.push(offer.data_allowance);
@@ -79,7 +83,7 @@ export class BuifylTransformer {
     return translations[feature] || feature;
   }
 
-  private static getPriceLabel(category: string): Record<string, string> {
+  static getPriceLabel(category: string): Record<string, string> {
     const labels: Record<string, Record<string, string>> = {
       mobile: { nb: 'kr/mnd', en: 'NOK/month' },
       electricity: { nb: 'øre/kWh', en: 'øre/kWh' },
@@ -90,7 +94,7 @@ export class BuifylTransformer {
     return labels[category] || { nb: 'kr/mnd', en: 'NOK/month' };
   }
 
-  private static estimateRating(providerName: string): number {
+  static estimateRating(providerName: string): number {
     const ratings: Record<string, number> = {
       'Sbanken': 4.5,
       'DNB': 4.2,
@@ -106,7 +110,7 @@ export class BuifylTransformer {
     return ratings[providerName] || 4.0;
   }
 
-  private static getDefaultLogo(providerName: string): string {
+  static getDefaultLogo(providerName: string): string {
     const logos: Record<string, string> = {
       'DNB': 'https://www.dnb.no/static/images/dnb-logo.svg',
       'Sbanken': 'https://www.sbanken.no/globalassets/sbanken-logo.svg',
