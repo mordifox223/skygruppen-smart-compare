@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -22,11 +21,11 @@ interface FormData {
   logo_url: string;
   features: string;
   is_active: boolean;
-  data_source: string;
+  data_source: 'scraped' | 'api' | 'manual' | 'cached';
 }
 
 interface ProviderOfferFormProps {
-  onSubmit: (data: Omit<ProviderOffer, 'id' | 'created_at' | 'last_updated' | 'last_scraped' | 'scrape_attempts' | 'scrape_errors'>) => Promise<void>;
+  onSubmit: (data: Omit<ProviderOffer, 'id' | 'last_updated'>) => Promise<void>;
   onCancel: () => void;
   isLoading: boolean;
   initialData?: Partial<ProviderOffer>;
@@ -62,7 +61,8 @@ export const ProviderOfferForm: React.FC<ProviderOfferFormProps> = ({
       await onSubmit({
         ...data,
         features,
-        monthly_price: Number(data.monthly_price)
+        monthly_price: Number(data.monthly_price),
+        last_scraped: null // This will be set by the database
       });
     } catch (error) {
       console.error('Form submission error:', error);
@@ -154,7 +154,7 @@ export const ProviderOfferForm: React.FC<ProviderOfferFormProps> = ({
 
         <div className="space-y-2">
           <Label htmlFor="data_source">Data Source</Label>
-          <Select onValueChange={(value) => setValue('data_source', value)} defaultValue={watch('data_source')}>
+          <Select onValueChange={(value) => setValue('data_source', value as 'scraped' | 'api' | 'manual' | 'cached')} defaultValue={watch('data_source')}>
             <SelectTrigger>
               <SelectValue placeholder="Select source" />
             </SelectTrigger>

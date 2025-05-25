@@ -43,7 +43,12 @@ export const useProviderOffers = (category?: string) => {
         throw error;
       }
       
-      return data || [];
+      // Transform the data to match our interface
+      return (data || []).map(item => ({
+        ...item,
+        features: typeof item.features === 'string' ? JSON.parse(item.features) : (item.features as Record<string, any>) || {},
+        data_source: item.data_source as 'scraped' | 'api' | 'manual' | 'cached'
+      }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -53,7 +58,7 @@ export const useCreateProviderOffer = () => {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: async (offer: Omit<ProviderOffer, 'id' | 'created_at' | 'last_updated'>) => {
+    mutationFn: async (offer: Omit<ProviderOffer, 'id' | 'last_updated'>) => {
       const { data, error } = await supabase
         .from('provider_offers')
         .insert([offer])

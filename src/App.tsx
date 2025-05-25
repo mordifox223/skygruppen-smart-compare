@@ -8,6 +8,7 @@ import { LanguageProvider } from "@/lib/languageContext";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Compare from "./pages/Compare";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({

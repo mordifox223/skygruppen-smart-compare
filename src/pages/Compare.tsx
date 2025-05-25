@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useLanguage } from '@/lib/languageContext';
 import { getMockProviders, getAvailableCategories } from '@/lib/i18n';
+import { useProviderOffers, convertToLegacyProvider } from '@/hooks/useProviderOffers';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ComparisonTable from '@/components/ComparisonTable';

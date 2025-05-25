@@ -30,7 +30,11 @@ export const useScrapingJobs = () => {
         throw error;
       }
       
-      return data || [];
+      // Transform the data to match our interface
+      return (data || []).map(item => ({
+        ...item,
+        status: item.status as 'pending' | 'running' | 'completed' | 'failed'
+      }));
     },
     refetchInterval: 30000, // Refetch every 30 seconds
   });
