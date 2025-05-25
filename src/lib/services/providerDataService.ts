@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 
@@ -46,6 +45,45 @@ class ProviderDataService {
 
     } catch (error) {
       console.error(`Error fetching from Buifyl Shop for ${category}:`, error);
+      return [];
+    }
+  }
+
+  async validateAffiliateUrls(category: string): Promise<{ url: string; valid: boolean }[]> {
+    try {
+      // Get all affiliate URLs for the category
+      const { data: offers, error } = await supabase
+        .from('provider_offers')
+        .select('offer_url, direct_link, source_url')
+        .eq('category', category)
+        .eq('is_active', true);
+
+      if (error) {
+        console.error('Error fetching URLs for validation:', error);
+        return [];
+      }
+
+      const urlsToValidate = offers?.map(offer => offer.direct_link || offer.offer_url || offer.source_url).filter(Boolean) || [];
+      
+      // Validate each URL
+      const results = await Promise.all(
+        urlsToValidate.map(async (url: string) => {
+          try {
+            const response = await fetch(url, { 
+              method: 'HEAD', 
+              mode: 'no-cors',
+              cache: 'no-cache'
+            });
+            return { url, valid: response.ok };
+          } catch (error) {
+            return { url, valid: false };
+          }
+        })
+      );
+
+      return results;
+    } catch (error) {
+      console.error('Error validating affiliate URLs:', error);
       return [];
     }
   }

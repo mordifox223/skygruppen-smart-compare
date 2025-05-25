@@ -1,6 +1,5 @@
-
 export type Language = 'nb' | 'en';
-export type ProviderCategory = 'insurance' | 'electricity' | 'mobile' | 'loan';
+export type ProviderCategory = 'insurance' | 'electricity' | 'power' | 'mobile' | 'loan';
 
 export interface Category {
   id: string;
