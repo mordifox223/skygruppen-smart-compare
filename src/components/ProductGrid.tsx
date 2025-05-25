@@ -48,7 +48,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ category }) => {
 
   const initializeData = async () => {
     try {
-      console.log('🔄 Initializing provider data...');
+      console.log('🔄 Initializing provider data automatically...');
       
       const { data, error } = await supabase.functions.invoke('scrape-real-providers', {
         body: { action: 'scrape_all' }

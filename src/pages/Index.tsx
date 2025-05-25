@@ -24,7 +24,13 @@ const Index = () => {
       setProviderCounts(counts);
     };
     
+    // Load counts immediately
     loadProviderCounts();
+    
+    // Refresh counts every 30 seconds to stay updated
+    const interval = setInterval(loadProviderCounts, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   return (
