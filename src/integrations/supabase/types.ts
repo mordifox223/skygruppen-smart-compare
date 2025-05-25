@@ -225,6 +225,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scraping_jobs: {
+        Row: {
+          category: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          offers_found: number
+          provider_name: string
+          started_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          offers_found?: number
+          provider_name: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          offers_found?: number
+          provider_name?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

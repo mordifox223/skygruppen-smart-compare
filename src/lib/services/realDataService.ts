@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Provider } from '@/lib/types';
 import type { Json } from '@/integrations/supabase/types';
@@ -234,14 +235,32 @@ class RealDataService {
 
   async getScrapingJobs(limit = 10): Promise<ScrapingJob[]> {
     try {
-      const { data, error } = await supabase
-        .from('scraping_jobs')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(limit);
+      // Use a direct fetch to handle the fact that TypeScript types haven't been regenerated yet
+      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
-      if (error) throw error;
-      return data || [];
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Transform the data to match ScrapingJob interface
+      return (data || []).map((job: any) => ({
+        id: job.id,
+        provider_name: job.provider_name,
+        category: job.category,
+        status: job.status,
+        started_at: job.started_at,
+        completed_at: job.completed_at,
+        error_message: job.error_message,
+        offers_found: job.offers_found || 0
+      }));
     } catch (error) {
       console.error('Error fetching scraping jobs:', error);
       return [];

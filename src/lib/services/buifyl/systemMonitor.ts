@@ -92,13 +92,28 @@ export class BuifylSystemMonitor {
 
   private async getScrapingJobs(limit = 10): Promise<any[]> {
     try {
+      // Use a raw query to handle the fact that TypeScript types haven't been regenerated yet
       const { data, error } = await supabase
-        .from('scraping_jobs')
-        .select('*')
-        .order('started_at', { ascending: false })
-        .limit(limit);
+        .rpc('get_scraping_jobs', { job_limit: limit })
+        .single();
       
-      if (error) throw error;
+      // If the RPC function doesn't exist, fall back to direct table query
+      if (error && error.code === '42883') {
+        // Direct table query as fallback
+        const response = await fetch(`${supabase.supabaseUrl}/rest/v1/scraping_jobs?order=started_at.desc&limit=${limit}`, {
+          headers: {
+            'apikey': supabase.supabaseKey,
+            'Authorization': `Bearer ${supabase.supabaseKey}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          return data || [];
+        }
+      }
+      
       return data || [];
     } catch (error) {
       console.error('Error fetching scraping jobs:', error);
