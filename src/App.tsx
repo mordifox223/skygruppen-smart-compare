@@ -21,6 +21,9 @@ const queryClient = new QueryClient({
   },
 });
 
+// Use basename only in production (GitHub Pages)
+const basename = import.meta.env.PROD ? "/skygruppen-smart-compare" : "";
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -28,7 +31,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter basename="/skygruppen-smart-compare">
+          <BrowserRouter basename={basename}>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/compare/:categoryId" element={<Compare />} />
