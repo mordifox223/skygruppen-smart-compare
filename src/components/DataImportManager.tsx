@@ -9,7 +9,8 @@ import {
   XCircle, 
   Database,
   FileText,
-  Loader2
+  Loader2,
+  Download
 } from 'lucide-react';
 import { DataImportService } from '@/lib/services/dataImportService';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,10 +23,10 @@ const DataImportManager: React.FC = () => {
   const { toast } = useToast();
 
   const categories = [
-    { id: 'mobile', name: 'Mobilabonnement' },
-    { id: 'electricity', name: 'Strøm' },
-    { id: 'insurance', name: 'Forsikring' },
-    { id: 'loan', name: 'Lån' }
+    { id: 'mobile', name: 'Mobilabonnement', file: '/sample-data/mobile-providers.txt' },
+    { id: 'electricity', name: 'Strøm', file: '/sample-data/electricity-providers.txt' },
+    { id: 'insurance', name: 'Forsikring', file: '/sample-data/insurance-providers.txt' },
+    { id: 'loan', name: 'Lån', file: '/sample-data/loan-providers.txt' }
   ];
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,11 +48,36 @@ const DataImportManager: React.FC = () => {
     reader.readAsText(file);
   };
 
+  const loadSampleData = async () => {
+    const category = categories.find(cat => cat.id === selectedCategory);
+    if (!category) return;
+
+    try {
+      const response = await fetch(category.file);
+      const content = await response.text();
+      setFileContent(content);
+      
+      const providerCount = content.split('\n').filter(line => line.trim().length > 0).length;
+      toast({
+        title: "Eksempeldata lastet",
+        description: `Lastet ${providerCount} leverandører for ${category.name}`,
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: "Feil ved lasting",
+        description: "Kunne ikke laste eksempeldata",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
   const handleImportProviders = async () => {
     if (!fileContent.trim()) {
       toast({
-        title: "Ingen fil valgt",
-        description: "Last opp en .txt-fil med leverandørnavn først",
+        title: "Ingen data",
+        description: "Last opp en fil eller bruk eksempeldata først",
         variant: "destructive",
         duration: 3000,
       });
@@ -103,15 +129,17 @@ const DataImportManager: React.FC = () => {
   };
 
   const createSampleFile = () => {
-    const sampleData = {
-      mobile: 'Telenor\nTelia\nIce\nOneCall\nChess\nHalebop\nTalkmore\nKall\nLyca Mobile\nLebara\nNetcom\nMyCall\nOister\nAltibox\nMtel\nSmart\nCircle K\nCoop\nExtra\nXtra',
-      electricity: 'Hafslund\nTibber\nFjordkraft\nLyse\nFortum\nGudbrandsdal Energi\nOtter Strøm\nEidsiva Energi\nTrønderEnergi\nFusa Kraft\nNordkraft\nKLP Strøm\nNTE\nAiG\nOstfold Energi\nECO Strøm\nNord-Trøndelag Elektrisitetsverk\nVesterålskraft\nHarstad Kraft\nSalten Energi',
-      insurance: 'Gjensidige\nIf\nTryg\nSpareBank1\nDNB\nKLP\nStorebrann\nCodan\nNordea\nDansker\nOpplysningsvesenets fond\nProtector\nEika\nHenrik\nVarg\nPension Danmark\nSparer\nFolksam\nLänsförsäkringar\nAnderslöv',
-      loan: 'DNB\nNordea\nHandelsbanken\nSpareBank1\nSEB\nDanske Bank\nLåneramme\nResurs Bank\nBank Norwegian\nSantander\nBN Bank\nKredittbanken\nLendo\nMoneybank\nCompricer\nLønn\nFleks\nTeller\nKvikk Lån\nMinibank'
-    };
+    if (!fileContent) {
+      toast({
+        title: "Ingen data",
+        description: "Last først data for å lage en eksempelfil",
+        variant: "destructive",
+        duration: 3000,
+      });
+      return;
+    }
 
-    const content = sampleData[selectedCategory as keyof typeof sampleData] || '';
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = new Blob([fileContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -133,7 +161,7 @@ const DataImportManager: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-4 items-center flex-wrap">
               <select 
                 value={selectedCategory} 
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -144,9 +172,14 @@ const DataImportManager: React.FC = () => {
                 ))}
               </select>
               
-              <Button onClick={createSampleFile} variant="outline" size="sm">
-                <FileText className="mr-2" size={16} />
-                Last ned eksempel
+              <Button onClick={loadSampleData} variant="outline" size="sm">
+                <Database className="mr-2" size={16} />
+                Last eksempeldata
+              </Button>
+
+              <Button onClick={createSampleFile} variant="outline" size="sm" disabled={!fileContent}>
+                <Download className="mr-2" size={16} />
+                Last ned som fil
               </Button>
             </div>
 
@@ -164,17 +197,19 @@ const DataImportManager: React.FC = () => {
                   Klikk for å laste opp .txt-fil med leverandørnavn
                 </p>
                 <p className="text-xs text-gray-400">
-                  Ett navn per linje
+                  Ett navn per linje, eller bruk eksempeldata fra prosjektet
                 </p>
               </label>
             </div>
 
             {fileContent && (
               <div className="bg-gray-50 p-3 rounded border">
-                <p className="text-sm font-medium mb-2">Fil innhold:</p>
+                <p className="text-sm font-medium mb-2">
+                  Leverandører som vil importeres ({fileContent.split('\n').filter(line => line.trim()).length} stk):
+                </p>
                 <div className="max-h-32 overflow-y-auto text-sm text-gray-600">
                   {fileContent.split('\n').filter(line => line.trim()).map((line, index) => (
-                    <div key={index}>{line.trim()}</div>
+                    <div key={index} className="py-1 border-b last:border-b-0">{line.trim()}</div>
                   ))}
                 </div>
               </div>
@@ -187,13 +222,13 @@ const DataImportManager: React.FC = () => {
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="mr-2" size={16} />
-                  Importerer...
+                  <Loader2 className="mr-2 animate-spin" size={16} />
+                  Importerer data fra API-er...
                 </>
               ) : (
                 <>
                   <Upload className="mr-2" size={16} />
-                  Importer Leverandører
+                  Importer Leverandører til Database
                 </>
               )}
             </Button>
