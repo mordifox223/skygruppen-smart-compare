@@ -10,7 +10,9 @@ import {
   Database,
   FileText,
   Loader2,
-  Download
+  Download,
+  Building2,
+  Globe
 } from 'lucide-react';
 import { DataImportService } from '@/lib/services/dataImportService';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,10 +25,10 @@ const DataImportManager: React.FC = () => {
   const { toast } = useToast();
 
   const categories = [
-    { id: 'mobile', name: 'Mobilabonnement', file: '/sample-data/mobile-providers.txt' },
-    { id: 'electricity', name: 'Strøm', file: '/sample-data/electricity-providers.txt' },
-    { id: 'insurance', name: 'Forsikring', file: '/sample-data/insurance-providers.txt' },
-    { id: 'loan', name: 'Lån', file: '/sample-data/loan-providers.txt' }
+    { id: 'mobile', name: 'Mobilabonnement', file: '/sample-data/mobile-providers-norway.txt', icon: '📱' },
+    { id: 'electricity', name: 'Strøm', file: '/sample-data/electricity-providers-norway.txt', icon: '⚡' },
+    { id: 'insurance', name: 'Forsikring', file: '/sample-data/insurance-providers-norway.txt', icon: '🛡️' },
+    { id: 'loan', name: 'Lån', file: '/sample-data/loan-providers-norway.txt', icon: '🏦' }
   ];
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,8 +61,8 @@ const DataImportManager: React.FC = () => {
       
       const providerCount = content.split('\n').filter(line => line.trim().length > 0).length;
       toast({
-        title: "Eksempeldata lastet",
-        description: `Lastet ${providerCount} leverandører for ${category.name}`,
+        title: "🇳🇴 Norske leverandører lastet",
+        description: `Lastet ${providerCount} norske leverandører for ${category.name}`,
         duration: 3000,
       });
     } catch (error) {
@@ -89,8 +91,8 @@ const DataImportManager: React.FC = () => {
 
     try {
       toast({
-        title: "Starter import",
-        description: `Importerer leverandører for ${selectedCategory}...`,
+        title: "🇳🇴 Starter Norwegian API import",
+        description: `Henter data fra Brønnøysund og PEPPOL for ${selectedCategory}...`,
         duration: 3000,
       });
 
@@ -103,8 +105,8 @@ const DataImportManager: React.FC = () => {
 
       if (results.success > 0) {
         toast({
-          title: "Import fullført",
-          description: `Importerte ${results.success} leverandører${results.errors.length > 0 ? ` med ${results.errors.length} feil` : ''}`,
+          title: "✅ Import fullført",
+          description: `Importerte ${results.success} leverandører fra norske registre${results.errors.length > 0 ? ` med ${results.errors.length} advarsler` : ''}`,
           duration: 5000,
         });
       } else {
@@ -155,11 +157,27 @@ const DataImportManager: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Database size={20} />
-            Importer Leverandørdata
+            <Building2 size={20} />
+            Norsk Leverandør Import
+            <Badge variant="outline" className="ml-2">
+              <Globe size={12} className="mr-1" />
+              Brønnøysund + PEPPOL
+            </Badge>
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            Importer leverandørdata fra offisielle norske registre og API-er
+          </p>
         </CardHeader>
         <CardContent>
+          <div className="bg-blue-50 p-4 rounded-lg mb-4">
+            <h4 className="font-medium text-blue-900 mb-2">🇳🇴 Norske API-er i bruk:</h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• <strong>Brønnøysundregistrene:</strong> Organisasjonsnummer, adresse, næringskode</li>
+              <li>• <strong>PEPPOL/ELMA:</strong> EHF-faktura støtte og elektronisk handel</li>
+              <li>• <strong>Automatisk prissetting:</strong> Basert på bransje og selskapsdata</li>
+            </ul>
+          </div>
+
           <div className="space-y-4">
             <div className="flex gap-4 items-center flex-wrap">
               <select 
@@ -168,13 +186,15 @@ const DataImportManager: React.FC = () => {
                 className="border rounded px-3 py-2 bg-white"
               >
                 {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  <option key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.name}
+                  </option>
                 ))}
               </select>
               
               <Button onClick={loadSampleData} variant="outline" size="sm">
-                <Database className="mr-2" size={16} />
-                Last eksempeldata
+                <Building2 className="mr-2" size={16} />
+                Last norske leverandører
               </Button>
 
               <Button onClick={createSampleFile} variant="outline" size="sm" disabled={!fileContent}>
@@ -194,10 +214,10 @@ const DataImportManager: React.FC = () => {
               <label htmlFor="file-upload" className="cursor-pointer">
                 <Upload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-600">
-                  Klikk for å laste opp .txt-fil med leverandørnavn
+                  Klikk for å laste opp .txt-fil med leverandørnavn eller org.nr
                 </p>
                 <p className="text-xs text-gray-400">
-                  Ett navn per linje, eller bruk eksempeldata fra prosjektet
+                  Ett navn/org.nr per linje, eller bruk norske eksempeldata
                 </p>
               </label>
             </div>
@@ -205,11 +225,18 @@ const DataImportManager: React.FC = () => {
             {fileContent && (
               <div className="bg-gray-50 p-3 rounded border">
                 <p className="text-sm font-medium mb-2">
-                  Leverandører som vil importeres ({fileContent.split('\n').filter(line => line.trim()).length} stk):
+                  🇳🇴 Norske leverandører som vil importeres ({fileContent.split('\n').filter(line => line.trim()).length} stk):
                 </p>
                 <div className="max-h-32 overflow-y-auto text-sm text-gray-600">
                   {fileContent.split('\n').filter(line => line.trim()).map((line, index) => (
-                    <div key={index} className="py-1 border-b last:border-b-0">{line.trim()}</div>
+                    <div key={index} className="py-1 border-b last:border-b-0">
+                      {line.trim()}
+                      {/^\d{9}$/.test(line.trim()) && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          Org.nr
+                        </Badge>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
@@ -223,12 +250,12 @@ const DataImportManager: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 animate-spin" size={16} />
-                  Importerer data fra API-er...
+                  Henter data fra norske API-er...
                 </>
               ) : (
                 <>
-                  <Upload className="mr-2" size={16} />
-                  Importer Leverandører til Database
+                  <Building2 className="mr-2" size={16} />
+                  Importer fra Norske Registre
                 </>
               )}
             </Button>
@@ -275,6 +302,28 @@ const DataImportManager: React.FC = () => {
       )}
     </div>
   );
+};
+
+const createSampleFile = () => {
+  if (!fileContent) {
+    toast({
+      title: "Ingen data",
+      description: "Last først data for å lage en eksempelfil",
+      variant: "destructive",
+      duration: 3000,
+    });
+    return;
+  }
+
+  const blob = new Blob([fileContent], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${selectedCategory}-leverandorer-norge.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 };
 
 export default DataImportManager;

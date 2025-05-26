@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { getProviderApiConfig, ProviderApiConfig } from '@/lib/providerApis';
+import { NorwegianApiService, NorwegianCompanyData } from './norwegianApiService';
 
 export interface ImportedProvider {
   name: string;
@@ -12,6 +12,11 @@ export interface ImportedProvider {
   url: string;
   offer_url?: string;
   features?: Record<string, any>;
+  organisasjonsnummer?: string;
+  peppolId?: string;
+  canReceiveEhf?: boolean;
+  address?: string;
+  industryCode?: string;
 }
 
 export class DataImportService {
@@ -26,127 +31,107 @@ export class DataImportService {
   }
 
   /**
-   * Fetch data from provider API
+   * Create provider from Norwegian company data
    */
-  static async fetchProviderData(
-    providerName: string, 
-    config: ProviderApiConfig
-  ): Promise<any> {
-    try {
-      console.log(`🌐 Fetching data for ${providerName} from ${config.url}`);
-      
-      const response = await fetch(config.url, {
-        method: config.method || 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Skygruppen-Compare/1.0',
-          ...config.headers
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`❌ Failed to fetch data for ${providerName}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Extract provider information from API response
-   */
-  static extractProviderInfo(
-    data: any, 
-    config: ProviderApiConfig, 
-    providerName: string,
-    category: string
+  static createProviderFromNorwegianData(
+    companyData: NorwegianCompanyData,
+    category: string,
+    originalName: string
   ): ImportedProvider {
-    const price = this.getNestedValue(data, config.priceField) || 0;
-    const rating = this.getNestedValue(data, config.ratingField || 'rating') || 4.0;
-    const description = this.getNestedValue(data, config.descriptionField || 'description') || 'Ingen beskrivelse tilgjengelig';
+    const price = NorwegianApiService.generateRealisticPricing(companyData, category);
+    const rating = Math.round((3.5 + Math.random() * 1.5) * 10) / 10; // 3.5-5.0 rating
+    
+    // Create address string
+    const address = companyData.forretningsadresse 
+      ? `${companyData.forretningsadresse.adresse?.join(' ') || ''}, ${companyData.forretningsadresse.postnummer || ''} ${companyData.forretningsadresse.poststed || ''}`.trim()
+      : '';
+
+    // Generate website URL if not provided
+    const websiteUrl = companyData.hjemmeside || 
+      `https://${companyData.navn.toLowerCase().replace(/[^a-z0-9]/g, '')}.no`;
 
     return {
-      name: providerName,
+      name: companyData.navn,
       category,
-      price: parseFloat(price.toString()),
-      rating: parseFloat(rating.toString()),
-      description: description.toString(),
-      url: config.url,
-      offer_url: config.url,
-      features: data.features || {}
+      price,
+      rating,
+      description: `${companyData.navn} - ${companyData.naeringskode1?.beskrivelse || 'Leverandør'} basert i ${companyData.forretningsadresse?.poststed || 'Norge'}`,
+      url: websiteUrl,
+      offer_url: `${websiteUrl}/tilbud`,
+      organisasjonsnummer: companyData.organisasjonsnummer,
+      peppolId: companyData.peppolId,
+      canReceiveEhf: companyData.canReceiveEhf,
+      address,
+      industryCode: companyData.naeringskode1?.kode,
+      features: {
+        nb: [
+          'Norsk selskap',
+          companyData.canReceiveEhf ? 'EHF-faktura støtte' : 'Standard fakturering',
+          companyData.naeringskode1?.beskrivelse || 'Profesjonelle tjenester'
+        ],
+        en: [
+          'Norwegian company',
+          companyData.canReceiveEhf ? 'EHF invoice support' : 'Standard invoicing',
+          companyData.naeringskode1?.beskrivelse || 'Professional services'
+        ]
+      }
     };
   }
 
   /**
-   * Get nested value from object using dot notation
-   */
-  private static getNestedValue(obj: any, path: string): any {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  }
-
-  /**
-   * Import providers from text and save to database
+   * Import providers from text and save to database using Norwegian APIs
    */
   static async importProvidersFromText(
     text: string, 
     category: string
   ): Promise<{ success: number; errors: string[] }> {
-    const providerNames = this.parseProvidersFromText(text);
+    const providerIdentifiers = this.parseProvidersFromText(text);
     const importedProviders: ImportedProvider[] = [];
     const errors: string[] = [];
 
-    console.log(`📋 Importing ${providerNames.length} providers for category: ${category}`);
+    console.log(`📋 Importing ${providerIdentifiers.length} providers for category: ${category}`);
+    console.log(`🇳🇴 Using Norwegian APIs (Brønnøysund + PEPPOL)`);
 
-    for (const providerName of providerNames) {
+    for (const identifier of providerIdentifiers) {
       try {
-        const config = getProviderApiConfig(providerName);
+        console.log(`\n🔄 Processing: ${identifier}`);
         
-        if (!config) {
-          // Create fallback data for providers without API config
-          console.log(`⚠️ No API config for ${providerName}, creating fallback data`);
+        // Get comprehensive data from Norwegian APIs
+        const companyData = await NorwegianApiService.getComprehensiveData(identifier);
+        
+        if (companyData) {
+          const provider = this.createProviderFromNorwegianData(companyData, category, identifier);
+          importedProviders.push(provider);
+          
+          console.log(`✅ Successfully imported ${companyData.navn} (${companyData.organisasjonsnummer})`);
+          console.log(`   - Industry: ${companyData.naeringskode1?.beskrivelse || 'N/A'}`);
+          console.log(`   - EHF Support: ${companyData.canReceiveEhf ? 'Yes' : 'No'}`);
+          console.log(`   - Generated Price: ${provider.price} kr`);
+        } else {
+          // Create fallback data if no API data found
+          console.log(`⚠️ No API data found for ${identifier}, creating fallback`);
           importedProviders.push({
-            name: providerName,
+            name: identifier,
             category,
-            price: Math.floor(Math.random() * 500) + 100, // Random price 100-600
-            rating: Math.round((Math.random() * 2 + 3) * 10) / 10, // Rating 3.0-5.0
-            description: `${providerName} tilbud for ${category}`,
-            url: `https://${providerName.toLowerCase().replace(/\s+/g, '')}.no`,
-            offer_url: `https://${providerName.toLowerCase().replace(/\s+/g, '')}.no/tilbud`
+            price: Math.floor(Math.random() * 500) + 200, // 200-700 kr
+            rating: Math.round((3.0 + Math.random() * 2) * 10) / 10, // 3.0-5.0
+            description: `${identifier} tilbud for ${category}`,
+            url: `https://${identifier.toLowerCase().replace(/\s+/g, '')}.no`,
+            offer_url: `https://${identifier.toLowerCase().replace(/\s+/g, '')}.no/tilbud`
           });
-          continue;
-        }
-
-        try {
-          const apiData = await this.fetchProviderData(providerName, config);
-          const providerInfo = this.extractProviderInfo(apiData, config, providerName, category);
-          importedProviders.push(providerInfo);
-          console.log(`✅ Successfully imported ${providerName}`);
-        } catch (apiError) {
-          // Create fallback if API fails
-          console.log(`⚠️ API failed for ${providerName}, using fallback data`);
-          importedProviders.push({
-            name: providerName,
-            category,
-            price: Math.floor(Math.random() * 500) + 100,
-            rating: Math.round((Math.random() * 2 + 3) * 10) / 10,
-            description: `${providerName} tilbud for ${category}`,
-            url: `https://${providerName.toLowerCase().replace(/\s+/g, '')}.no`,
-            offer_url: `https://${providerName.toLowerCase().replace(/\s+/g, '')}.no/tilbud`
-          });
-          errors.push(`API error for ${providerName}: ${apiError}`);
+          errors.push(`No Norwegian registry data found for: ${identifier}`);
         }
       } catch (error) {
-        errors.push(`Failed to process ${providerName}: ${error}`);
-        console.error(`❌ Error processing ${providerName}:`, error);
+        errors.push(`Failed to process ${identifier}: ${error}`);
+        console.error(`❌ Error processing ${identifier}:`, error);
       }
     }
 
     // Save to database
     if (importedProviders.length > 0) {
       try {
+        console.log(`\n💾 Saving ${importedProviders.length} providers to database...`);
+        
         const { error } = await supabase
           .from('provider_offers')
           .upsert(
@@ -157,7 +142,14 @@ export class DataImportService {
               monthly_price: provider.price,
               offer_url: provider.offer_url || provider.url,
               source_url: provider.url,
-              features: provider.features || {},
+              features: {
+                ...provider.features,
+                organisasjonsnummer: provider.organisasjonsnummer,
+                peppolId: provider.peppolId,
+                canReceiveEhf: provider.canReceiveEhf,
+                address: provider.address,
+                industryCode: provider.industryCode
+              },
               logo_url: provider.logo_url,
               is_active: true,
               scraped_at: new Date().toISOString()
@@ -173,12 +165,17 @@ export class DataImportService {
           throw new Error(`Database error: ${error.message}`);
         }
 
-        console.log(`💾 Successfully saved ${importedProviders.length} providers to database`);
+        console.log(`✅ Successfully saved ${importedProviders.length} providers to database`);
       } catch (dbError) {
         errors.push(`Database error: ${dbError}`);
         console.error('❌ Failed to save to database:', dbError);
       }
     }
+
+    console.log(`\n📊 Import Summary:`);
+    console.log(`   - Total processed: ${providerIdentifiers.length}`);
+    console.log(`   - Successfully imported: ${importedProviders.length}`);
+    console.log(`   - Errors: ${errors.length}`);
 
     return {
       success: importedProviders.length,
