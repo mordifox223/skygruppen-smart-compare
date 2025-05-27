@@ -304,26 +304,4 @@ const DataImportManager: React.FC = () => {
   );
 };
 
-const createSampleFile = () => {
-  if (!fileContent) {
-    toast({
-      title: "Ingen data",
-      description: "Last først data for å lage en eksempelfil",
-      variant: "destructive",
-      duration: 3000,
-    });
-    return;
-  }
-
-  const blob = new Blob([fileContent], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${selectedCategory}-leverandorer-norge.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
 export default DataImportManager;
